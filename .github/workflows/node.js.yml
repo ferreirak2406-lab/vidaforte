@@ -1,0 +1,2904 @@
+// ============================================================
+// VIDA FORTE — Versão Aprimorada (Parte 1/3)
+// Arquitetura: Separação de UI, Lógica e Persistência
+// Offline-first com persistência local (localStorage)
+// Design original mantido 100%
+// ============================================================
+
+import React, { useState, useEffect, useCallback, useRef, createContext, useContext, memo } from "react";
+import {
+  ArrowLeft, ArrowRight, Home, ListChecks, BarChart3, Users, User, Bell, Flame,
+  Droplet, Dumbbell, Utensils, BookOpen, Moon, Brain, Check, Target, Mic, MicOff,
+  Phone, PhoneOff, Send, Sparkles, Camera, Fingerprint, Heart, Globe, TrendingUp,
+  ChevronDown, ChevronRight, RefreshCw, Trophy, MessageCircle, Type, Settings,
+  Award, Crown, Infinity as InfinityIcon, Cloud, BarChart2, FileText, Rocket,
+  Watch, Video, Lock, Shield, Pin, Volume2, VolumeX, Moon as MoonIcon,
+  Sun, WifiOff, AlertTriangle, CheckCircle2, X, Eye, EyeOff, Mail, LogIn,
+  UserPlus, Trash2, Download, Upload, Languages, Star, HelpCircle, FileQuestion,
+  Zap, Activity, Calendar, Clock, Map, ChevronUp, Share2, ThumbsUp, MessageSquare,
+  Edit3, Save, RotateCcw, Play, Pause, SkipForward, SkipBack, Info, Smartphone,
+  KeyRound, Database, Globe2, FileCheck, HandHeart
+} from "lucide-react";
+import { LineChart, Line, ResponsiveContainer, XAxis, YAxis } from "recharts";
+
+// ============================================================
+// CONSTANTES E CONFIGURACOES
+// ============================================================
+
+const GREEN = "#39FF6A";
+const GREEN_DARK = "#166534";
+const BG = "#050806";
+const CARD = "#0E1410";
+const BORDER = "#1E2A22";
+const MUTED = "#8FA69A";
+const DIM = "#5C6E64";
+const ERROR = "#E5484D";
+const WARNING = "#F59E0B";
+
+const APP_VERSION = "1.0.0";
+const APP_BUILD_DATE = "08/07/2026";
+const SUPPORT_PHONE = "+55 47 99713-8078";
+const SUPPORT_EMAIL = "vidaforteprofissional@gmail.com";
+
+const STORAGE_KEYS = {
+  USER: "vf_user",
+  HABITS: "vf_habits",
+  SETTINGS: "vf_settings",
+  XP: "vf_xp",
+  STREAK: "vf_streak",
+  MAX_STREAK: "vf_max_streak",
+  ACHIEVEMENTS: "vf_achievements",
+  MEALS: "vf_meals",
+  MESSAGES: "vf_messages",
+  DAILY_MISSIONS: "vf_daily_missions",
+  LAST_OPEN_DATE: "vf_last_open_date",
+  FIRST_LAUNCH: "vf_first_launch",
+  STATS_HISTORY: "vf_stats_history",
+  BACKUP: "vf_backup",
+};
+
+const LANGUAGES = {
+  pt: {
+    name: "Portugues",
+    welcome: "Bem-vindo",
+    habits: "Habitos",
+    stats: "Estatisticas",
+    community: "Comunidade",
+    profile: "Perfil",
+    settings: "Configuracoes",
+    logout: "Sair",
+    save: "Salvar",
+    cancel: "Cancelar",
+    edit: "Editar",
+    delete: "Excluir",
+    confirm: "Confirmar",
+    back: "Voltar",
+    next: "Proximo",
+    done: "Concluir",
+    loading: "Carregando...",
+    error: "Erro",
+    success: "Sucesso",
+    offline: "Sem conexao",
+    retry: "Tentar novamente",
+    water: "Agua",
+    sleep: "Sono",
+    workout: "Treino",
+    reading: "Leitura",
+    meditation: "Meditacao",
+    nutrition: "Alimentacao",
+    streak: "Sequencia",
+    level: "Nivel",
+    xp: "XP",
+    dailyMission: "Missao do Dia",
+    coach: "Dra. Helena",
+    manifesto: "Manifesto Vida Forte",
+    about: "Sobre",
+    privacy: "Privacidade",
+    terms: "Termos de Uso",
+    support: "Suporte",
+    share: "Compartilhar",
+    rate: "Avaliar",
+    suggest: "Enviar sugestao",
+    report: "Reportar problema",
+    contact: "Fale conosco",
+    version: "Versao",
+    changelog: "Novidades",
+    thankYou: "Obrigado por fazer parte do VIDA FORTE. Cada habito concluido e um passo em direcao a sua melhor versao. Continue evoluindo.",
+    manifestoText: "Acreditamos que grandes transformacoes nao acontecem em um unico dia. Elas sao construidas por pequenas escolhas repetidas diariamente. O Vida Forte existe para lembrar voce de que cada missao concluida fortalece seu corpo, sua mente e seu carater. Evoluir e uma decisao diaria.",
+    aboutText: "Vida Forte e um aplicativo desenvolvido para ajudar voce a construir habitos saudaveis e evoluir continuamente na saude fisica, mental e espiritual. Nossa missao e tornar o desenvolvimento pessoal simples, motivador e acessivel para todos.",
+    missionText: "Transformar pequenas acoes diarias em grandes mudancas de vida.",
+    noConnection: "Sem conexao com a internet. Seus dados estao salvos localmente.",
+    serverError: "Erro no servidor. Tente novamente mais tarde.",
+    dataSaved: "Dados salvos com sucesso!",
+    deleteConfirm: "Tem certeza que deseja excluir? Esta acao nao pode ser desfeita.",
+    backupCreated: "Backup criado com sucesso!",
+    backupRestored: "Backup restaurado com sucesso!",
+    male: "Masculino",
+    female: "Feminino",
+    other: "Outro",
+    beginner: "Iniciante",
+    discipline: "Disciplina",
+    consistency: "Constancia",
+    resilience: "Resiliencia",
+    elite: "Elite",
+    infinity: "Infinity",
+  },
+  en: {
+    name: "English",
+    welcome: "Welcome",
+    habits: "Habits",
+    stats: "Statistics",
+    community: "Community",
+    profile: "Profile",
+    settings: "Settings",
+    logout: "Logout",
+    save: "Save",
+    cancel: "Cancel",
+    edit: "Edit",
+    delete: "Delete",
+    confirm: "Confirm",
+    back: "Back",
+    next: "Next",
+    done: "Done",
+    loading: "Loading...",
+    error: "Error",
+    success: "Success",
+    offline: "No connection",
+    retry: "Retry",
+    water: "Water",
+    sleep: "Sleep",
+    workout: "Workout",
+    reading: "Reading",
+    meditation: "Meditation",
+    nutrition: "Nutrition",
+    streak: "Streak",
+    level: "Level",
+    xp: "XP",
+    dailyMission: "Daily Mission",
+    coach: "Dr. Helena",
+    manifesto: "Vida Forte Manifesto",
+    about: "About",
+    privacy: "Privacy",
+    terms: "Terms of Use",
+    support: "Support",
+    share: "Share",
+    rate: "Rate",
+    suggest: "Send suggestion",
+    report: "Report issue",
+    contact: "Contact us",
+    version: "Version",
+    changelog: "Changelog",
+    thankYou: "Thank you for being part of VIDA FORTE. Every completed habit is a step toward your best version. Keep evolving.",
+    manifestoText: "We believe great transformations don't happen in a single day. They are built by small choices repeated daily. Vida Forte exists to remind you that every completed mission strengthens your body, mind, and character. Evolving is a daily decision.",
+    aboutText: "Vida Forte is an app developed to help you build healthy habits and continuously evolve in physical, mental, and spiritual health. Our mission is to make personal development simple, motivating, and accessible to everyone.",
+    missionText: "Transform small daily actions into big life changes.",
+    noConnection: "No internet connection. Your data is saved locally.",
+    serverError: "Server error. Please try again later.",
+    dataSaved: "Data saved successfully!",
+    deleteConfirm: "Are you sure you want to delete? This action cannot be undone.",
+    backupCreated: "Backup created successfully!",
+    backupRestored: "Backup restored successfully!",
+    male: "Male",
+    female: "Female",
+    other: "Other",
+    beginner: "Beginner",
+    discipline: "Discipline",
+    consistency: "Consistency",
+    resilience: "Resilience",
+    elite: "Elite",
+    infinity: "Infinity",
+  },
+  es: {
+    name: "Espanol",
+    welcome: "Bienvenido",
+    habits: "Habitos",
+    stats: "Estadisticas",
+    community: "Comunidad",
+    profile: "Perfil",
+    settings: "Configuracion",
+    logout: "Cerrar sesion",
+    save: "Guardar",
+    cancel: "Cancelar",
+    edit: "Editar",
+    delete: "Eliminar",
+    confirm: "Confirmar",
+    back: "Atras",
+    next: "Siguiente",
+    done: "Hecho",
+    loading: "Cargando...",
+    error: "Error",
+    success: "Exito",
+    offline: "Sin conexion",
+    retry: "Reintentar",
+    water: "Agua",
+    sleep: "Sueno",
+    workout: "Entrenamiento",
+    reading: "Lectura",
+    meditation: "Meditacion",
+    nutrition: "Nutricion",
+    streak: "Racha",
+    level: "Nivel",
+    xp: "XP",
+    dailyMission: "Mision Diaria",
+    coach: "Dra. Helena",
+    manifesto: "Manifiesto Vida Forte",
+    about: "Acerca de",
+    privacy: "Privacidad",
+    terms: "Terminos de Uso",
+    support: "Soporte",
+    share: "Compartir",
+    rate: "Calificar",
+    suggest: "Enviar sugerencia",
+    report: "Reportar problema",
+    contact: "Contactanos",
+    version: "Version",
+    changelog: "Novedades",
+    thankYou: "Gracias por ser parte de VIDA FORTE. Cada habito completado es un paso hacia tu mejor version. Sigue evolucionando.",
+    manifestoText: "Creemos que las grandes transformaciones no ocurren en un solo dia. Se construyen con pequenas elecciones repetidas diariamente. Vida Forte existe para recordarte que cada mision completada fortalece tu cuerpo, mente y caracter. Evolucionar es una decision diaria.",
+    aboutText: "Vida Forte es una aplicacion desarrollada para ayudarte a construir habitos saludables y evolucionar continuamente en salud fisica, mental y espiritual. Nuestra mision es hacer el desarrollo personal simple, motivador y accesible para todos.",
+    missionText: "Transformar pequenas acciones diarias en grandes cambios de vida.",
+    noConnection: "Sin conexion a internet. Tus datos estan guardados localmente.",
+    serverError: "Error del servidor. Intentelo de nuevo mas tarde.",
+    dataSaved: "Datos guardados con exito!",
+    deleteConfirm: "Estas seguro de que deseas eliminar? Esta accion no se puede deshacer.",
+    backupCreated: "Respaldo creado con exito!",
+    backupRestored: "Respaldo restaurado con exito!",
+    male: "Masculino",
+    female: "Femenino",
+    other: "Otro",
+    beginner: "Principiante",
+    discipline: "Disciplina",
+    consistency: "Constancia",
+    resilience: "Resiliencia",
+    elite: "Elite",
+    infinity: "Infinity",
+  }
+};
+
+const LEVEL_MAP = [
+  { name: "beginner", label: "Iniciante", minXp: 0, color: "#8FA69A" },
+  { name: "discipline", label: "Disciplina", minXp: 1000, color: "#39FF6A" },
+  { name: "consistency", label: "Constancia", minXp: 5000, color: "#22C55E" },
+  { name: "resilience", label: "Resiliencia", minXp: 15000, color: "#16A34A" },
+  { name: "elite", label: "Elite", minXp: 40000, color: "#15803D" },
+  { name: "infinity", label: "Infinity", minXp: 100000, color: "#39FF6A" },
+];
+
+const ACHIEVEMENTS = [
+  { id: "first_habit", title: "Primeiro Passo", desc: "Complete seu primeiro habito", icon: "CheckCircle2", xp: 50 },
+  { id: "week_streak", title: "7 Dias", desc: "Mantenha uma sequencia de 7 dias", icon: "Flame", xp: 200 },
+  { id: "month_streak", title: "30 Dias", desc: "Mantenha uma sequencia de 30 dias", icon: "Trophy", xp: 500 },
+  { id: "century_streak", title: "100 Dias", desc: "Mantenha uma sequencia de 100 dias", icon: "Award", xp: 2000 },
+  { id: "water_master", title: "Mestre da Agua", desc: "Complete agua por 30 dias seguidos", icon: "Droplet", xp: 300 },
+  { id: "workout_warrior", title: "Guerreiro", desc: "Complete 50 treinos", icon: "Dumbbell", xp: 1000 },
+  { id: "bookworm", title: "Leitor", desc: "Complete leitura por 30 dias", icon: "BookOpen", xp: 400 },
+  { id: "perfectionist", title: "Perfeccionista", desc: "Complete todos os habitos em um dia", icon: "Star", xp: 500 },
+  { id: "level_10", title: "Nivel 10", desc: "Alcance o nivel 10", icon: "TrendingUp", xp: 0 },
+  { id: "level_25", title: "Nivel 25", desc: "Alcance o nivel 25", icon: "Zap", xp: 0 },
+  { id: "level_50", title: "Nivel 50", desc: "Alcance o nivel 50", icon: "Crown", xp: 0 },
+];
+
+const DEFAULT_HABITS = [
+  { id: "agua", label: "Agua", meta: "2L", xp: 20, icon: "Droplet", done: false, streak: 0, bestStreak: 0, history: [] },
+  { id: "treino", label: "Treino", meta: "30 min", xp: 100, icon: "Dumbbell", done: false, streak: 0, bestStreak: 0, history: [] },
+  { id: "alimentacao", label: "Alimentacao", meta: "3 refeicoes", xp: 60, icon: "Utensils", done: false, streak: 0, bestStreak: 0, history: [] },
+  { id: "leitura", label: "Leitura", meta: "10 paginas", xp: 40, icon: "BookOpen", done: false, streak: 0, bestStreak: 0, history: [] },
+  { id: "sono", label: "Sono", meta: "7h30", xp: 30, icon: "Moon", done: false, streak: 0, bestStreak: 0, history: [] },
+  { id: "meditacao", label: "Meditacao", meta: "10 min", xp: 30, icon: "Brain", done: false, streak: 0, bestStreak: 0, history: [] },
+];
+
+const DEFAULT_MEALS = [
+  { id: "cafe", title: "Cafe da manha", time: "07:30", kcal: 420, done: false, items: ["2 ovos mexidos", "Aveia com banana", "Cafe sem acucar"] },
+  { id: "almoco", title: "Almoco", time: "12:30", kcal: 610, done: false, items: ["Frango grelhado", "Arroz integral", "Salada com azeite"] },
+  { id: "lanche", title: "Lanche da tarde", time: "16:00", kcal: 210, done: false, items: ["Iogurte natural", "Mix de castanhas"] },
+  { id: "jantar", title: "Jantar", time: "20:00", kcal: 480, done: false, items: ["Salmao assado", "Legumes no vapor", "Quinoa"] },
+];
+
+const DEFAULT_SETTINGS = {
+  language: "pt",
+  darkMode: true,
+  animations: true,
+  sound: true,
+  vibration: true,
+  showXpBar: true,
+  showProgressPercent: true,
+  coachMode: "texto",
+  coachVoice: "female",
+  coachFrequency: "medium",
+  motivationalMessages: true,
+  greetingOnOpen: true,
+  coachPersonality: "balanced",
+  notifications: {
+    water: true,
+    workout: true,
+    reading: true,
+    sleep: true,
+    custom: [],
+    silent: false,
+  },
+  showRanking: true,
+  showStreak: true,
+  showAchievements: true,
+  confettiOnLevelUp: true,
+  ambientMusic: false,
+  effectVolume: 0.7,
+  focusMusic: false,
+  biometricLock: false,
+  pinLock: false,
+  pin: null,
+  autoBackup: true,
+};
+
+const DEFAULT_USER = {
+  name: "",
+  email: "",
+  avatar: null,
+  age: null,
+  gender: "",
+  height: null,
+  weight: null,
+  goal: "",
+  registeredAt: null,
+  lastLogin: null,
+};
+
+// ============================================================
+// CAMADA DE PERSISTENCIA (Storage Service)
+// ============================================================
+
+const StorageService = {
+  isAvailable() {
+    try {
+      const test = "__test__";
+      localStorage.setItem(test, test);
+      localStorage.removeItem(test);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  get(key, defaultValue = null) {
+    try {
+      if (!this.isAvailable()) return defaultValue;
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : defaultValue;
+    } catch (e) {
+      console.error(`Storage get error [${key}]:`, e);
+      return defaultValue;
+    }
+  },
+
+  set(key, value) {
+    try {
+      if (!this.isAvailable()) return false;
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (e) {
+      console.error(`Storage set error [${key}]:`, e);
+      return false;
+    }
+  },
+
+  remove(key) {
+    try {
+      if (!this.isAvailable()) return false;
+      localStorage.removeItem(key);
+      return true;
+    } catch (e) {
+      console.error(`Storage remove error [${key}]:`, e);
+      return false;
+    }
+  },
+
+  clear() {
+    try {
+      if (!this.isAvailable()) return false;
+      Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+      return true;
+    } catch (e) {
+      console.error("Storage clear error:", e);
+      return false;
+    }
+  },
+
+  exportAll() {
+    const data = {};
+    Object.values(STORAGE_KEYS).forEach((key) => {
+      const value = this.get(key);
+      if (value !== null) data[key] = value;
+    });
+    return data;
+  },
+
+  importAll(data) {
+    try {
+      Object.entries(data).forEach(([key, value]) => {
+        if (Object.values(STORAGE_KEYS).includes(key)) {
+          this.set(key, value);
+        }
+      });
+      return true;
+    } catch (e) {
+      console.error("Storage import error:", e);
+      return false;
+    }
+  },
+
+  getSize() {
+    let total = 0;
+    Object.values(STORAGE_KEYS).forEach((key) => {
+      const item = localStorage.getItem(key);
+      if (item) total += item.length * 2;
+    });
+    return (total / 1024).toFixed(2) + " KB";
+  },
+};
+
+// ============================================================
+// CAMADA DE LOGICA DE NEGOCIO (Business Logic)
+// ============================================================
+
+const XP_PER_LEVEL = 6000;
+
+const ProgressService = {
+  calculateLevel(xp) {
+    return Math.floor(xp / XP_PER_LEVEL) + 1;
+  },
+
+  calculateLevelProgress(xp) {
+    const level = this.calculateLevel(xp);
+    const currentLevelXp = (level - 1) * XP_PER_LEVEL;
+    const nextLevelXp = level * XP_PER_LEVEL;
+    const progress = ((xp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100;
+    return { level, progress: Math.min(100, Math.max(0, progress)), current: xp - currentLevelXp, target: XP_PER_LEVEL };
+  },
+
+  getLevelName(level) {
+    const xp = (level - 1) * XP_PER_LEVEL;
+    for (let i = LEVEL_MAP.length - 1; i >= 0; i--) {
+      if (xp >= LEVEL_MAP[i].minXp) {
+        return LEVEL_MAP[i];
+      }
+    }
+    return LEVEL_MAP[0];
+  },
+
+  getNextLevelName(level) {
+    const xp = (level - 1) * XP_PER_LEVEL;
+    for (let i = 0; i < LEVEL_MAP.length; i++) {
+      if (xp < LEVEL_MAP[i].minXp) {
+        return LEVEL_MAP[i];
+      }
+    }
+    return LEVEL_MAP[LEVEL_MAP.length - 1];
+  },
+
+  addXp(currentXp, amount) {
+    const newXp = currentXp + amount;
+    const oldLevel = this.calculateLevel(currentXp);
+    const newLevel = this.calculateLevel(newXp);
+    const leveledUp = newLevel > oldLevel;
+    return { newXp, newLevel, leveledUp, oldLevel };
+  },
+
+  checkAchievements(habits, xp, level, unlocked = []) {
+    const newAchievements = [];
+    const isUnlocked = (id) => unlocked.includes(id);
+
+    const totalCompleted = habits.reduce((sum, h) => sum + (h.history?.filter((d) => d.done).length || 0), 0);
+    const maxStreak = Math.max(...habits.map((h) => h.bestStreak || 0), 0);
+    const waterStreak = habits.find((h) => h.id === "agua")?.bestStreak || 0;
+    const workoutCount = habits.find((h) => h.id === "treino")?.history?.filter((d) => d.done).length || 0;
+    const readingStreak = habits.find((h) => h.id === "leitura")?.bestStreak || 0;
+    const allDoneToday = habits.every((h) => h.done);
+
+    if (totalCompleted >= 1 && !isUnlocked("first_habit")) newAchievements.push("first_habit");
+    if (maxStreak >= 7 && !isUnlocked("week_streak")) newAchievements.push("week_streak");
+    if (maxStreak >= 30 && !isUnlocked("month_streak")) newAchievements.push("month_streak");
+    if (maxStreak >= 100 && !isUnlocked("century_streak")) newAchievements.push("century_streak");
+    if (waterStreak >= 30 && !isUnlocked("water_master")) newAchievements.push("water_master");
+    if (workoutCount >= 50 && !isUnlocked("workout_warrior")) newAchievements.push("workout_warrior");
+    if (readingStreak >= 30 && !isUnlocked("bookworm")) newAchievements.push("bookworm");
+    if (allDoneToday && !isUnlocked("perfectionist")) newAchievements.push("perfectionist");
+    if (level >= 10 && !isUnlocked("level_10")) newAchievements.push("level_10");
+    if (level >= 25 && !isUnlocked("level_25")) newAchievements.push("level_25");
+    if (level >= 50 && !isUnlocked("level_50")) newAchievements.push("level_50");
+
+    return newAchievements;
+  },
+
+  generateDailyMissions(habits, user) {
+    const missions = [];
+    const incomplete = habits.filter((h) => !h.done);
+
+    if (incomplete.find((h) => h.id === "agua")) {
+      missions.push({ id: "agua", icon: "Droplet", label: "Agua", desc: "Beba 2L de agua hoje", xp: 20 });
+    }
+    if (incomplete.find((h) => h.id === "sono")) {
+      missions.push({ id: "sono", icon: "Moon", label: "Sono", desc: "Durma pelo menos 7h30", xp: 30 });
+    }
+    if (incomplete.find((h) => h.id === "treino")) {
+      missions.push({ id: "treino", icon: "Dumbbell", label: "Treino", desc: "30 min de atividade fisica", xp: 100 });
+    }
+    if (incomplete.find((h) => h.id === "leitura")) {
+      missions.push({ id: "leitura", icon: "BookOpen", label: "Leitura", desc: "Leia 10 paginas", xp: 40 });
+    }
+    if (incomplete.find((h) => h.id === "meditacao")) {
+      missions.push({ id: "meditacao", icon: "Brain", label: "Meditacao", desc: "10 min de foco", xp: 30 });
+    }
+    if (incomplete.find((h) => h.id === "alimentacao")) {
+      missions.push({ id: "alimentacao", icon: "Utensils", label: "Alimentacao", desc: "3 refeicoes balanceadas", xp: 60 });
+    }
+
+    return missions.slice(0, 4);
+  },
+
+  generateCoachMessage(habits, user, streak, level) {
+    const completed = habits.filter((h) => h.done).length;
+    const total = habits.length;
+    const incomplete = habits.filter((h) => !h.done);
+
+    const hour = new Date().getHours();
+    let greeting = "Bom dia";
+    if (hour >= 12 && hour < 18) greeting = "Boa tarde";
+    else if (hour >= 18) greeting = "Boa noite";
+
+    const messages = [];
+    messages.push(`${greeting}, ${user.name || "guerreiro"}.`);
+
+    if (streak > 0) {
+      messages.push(`Voce esta ha ${streak} dias em sequencia. Impressionante!`);
+    }
+
+    if (completed === total) {
+      messages.push("Voce completou todos os habitos hoje! Sua constancia e inspiradora.");
+    } else if (completed > 0) {
+      messages.push(`Voce completou ${completed} de ${total} habitos. Falta pouco para fechar o dia!`);
+      if (incomplete.length > 0) {
+        messages.push(`Sua proxima missao: ${incomplete[0].label}.`);
+      }
+    } else {
+      messages.push("Hoje e um novo dia para evoluir. Vamos comecar com uma pequena vitoria?");
+    }
+
+    if (level >= 10) {
+      messages.push(`Voce esta no nivel ${level}. Sua evolucao e visivel!`);
+    }
+
+    return messages;
+  },
+
+  getSleepQuality(hours) {
+    if (hours >= 8) return { quality: "excelente", color: GREEN, message: "Sono excelente! Seu corpo agradece." };
+    if (hours >= 7) return { quality: "bom", color: "#22C55E", message: "Bom sono. Mantenha essa constancia." };
+    if (hours >= 6) return { quality: "regular", color: WARNING, message: "Sono regular. Tente dormir mais cedo hoje." };
+    return { quality: "insuficiente", color: ERROR, message: "Sono insuficiente. Priorize o descanso hoje." };
+  },
+};
+
+
+// ============================================================
+// CAMADA DE ESTADO GLOBAL (Context)
+// ============================================================
+
+const AppContext = createContext(null);
+
+function AppProvider({ children }) {
+  const [user, setUser] = useState(() => StorageService.get(STORAGE_KEYS.USER, DEFAULT_USER));
+  const [habits, setHabits] = useState(() => StorageService.get(STORAGE_KEYS.HABITS, DEFAULT_HABITS));
+  const [settings, setSettings] = useState(() => StorageService.get(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS));
+  const [xp, setXp] = useState(() => StorageService.get(STORAGE_KEYS.XP, 0));
+  const [streak, setStreak] = useState(() => StorageService.get(STORAGE_KEYS.STREAK, 0));
+  const [maxStreak, setMaxStreak] = useState(() => StorageService.get(STORAGE_KEYS.MAX_STREAK, 0));
+  const [achievements, setAchievements] = useState(() => StorageService.get(STORAGE_KEYS.ACHIEVEMENTS, []));
+  const [meals, setMeals] = useState(() => StorageService.get(STORAGE_KEYS.MEALS, DEFAULT_MEALS));
+  const [messages, setMessages] = useState(() => StorageService.get(STORAGE_KEYS.MESSAGES, []));
+  const [dailyMissions, setDailyMissions] = useState(() => StorageService.get(STORAGE_KEYS.DAILY_MISSIONS, []));
+  const [lastOpenDate, setLastOpenDate] = useState(() => StorageService.get(STORAGE_KEYS.LAST_OPEN_DATE, null));
+  const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [toast, setToast] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const t = useCallback((key) => {
+    const lang = settings.language || "pt";
+    return LANGUAGES[lang]?.[key] || LANGUAGES.pt[key] || key;
+  }, [settings.language]);
+
+  // Persistencia automatica
+  useEffect(() => { StorageService.set(STORAGE_KEYS.USER, user); }, [user]);
+  useEffect(() => { StorageService.set(STORAGE_KEYS.HABITS, habits); }, [habits]);
+  useEffect(() => { StorageService.set(STORAGE_KEYS.SETTINGS, settings); }, [settings]);
+  useEffect(() => { StorageService.set(STORAGE_KEYS.XP, xp); }, [xp]);
+  useEffect(() => { StorageService.set(STORAGE_KEYS.STREAK, streak); }, [streak]);
+  useEffect(() => { StorageService.set(STORAGE_KEYS.MAX_STREAK, maxStreak); }, [maxStreak]);
+  useEffect(() => { StorageService.set(STORAGE_KEYS.ACHIEVEMENTS, achievements); }, [achievements]);
+  useEffect(() => { StorageService.set(STORAGE_KEYS.MEALS, meals); }, [meals]);
+  useEffect(() => { StorageService.set(STORAGE_KEYS.MESSAGES, messages); }, [messages]);
+  useEffect(() => { StorageService.set(STORAGE_KEYS.DAILY_MISSIONS, dailyMissions); }, [dailyMissions]);
+  useEffect(() => { StorageService.set(STORAGE_KEYS.LAST_OPEN_DATE, lastOpenDate); }, [lastOpenDate]);
+
+  // Monitoramento de conexao
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  // Toast helper
+  const showToast = useCallback((message, type = "info", duration = 3000) => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), duration);
+  }, []);
+
+  // Toggle habit
+  const toggleHabit = useCallback((id) => {
+    setHabits((prev) => {
+      const today = new Date().toISOString().split("T")[0];
+      return prev.map((h) => {
+        if (h.id !== id) return h;
+        const newDone = !h.done;
+        const newHistory = [...(h.history || [])];
+        const todayEntry = newHistory.find((entry) => entry.date === today);
+        if (todayEntry) {
+          todayEntry.done = newDone;
+        } else {
+          newHistory.push({ date: today, done: newDone });
+        }
+        const trimmedHistory = newHistory.slice(-90);
+
+        let currentStreak = 0;
+        for (let i = trimmedHistory.length - 1; i >= 0; i--) {
+          if (trimmedHistory[i].done) currentStreak++;
+          else break;
+        }
+
+        return {
+          ...h,
+          done: newDone,
+          history: trimmedHistory,
+          streak: currentStreak,
+          bestStreak: Math.max(currentStreak, h.bestStreak || 0),
+        };
+      });
+    });
+
+    setHabits((prev) => {
+      const habit = prev.find((h) => h.id === id);
+      if (habit && habit.done) {
+        const result = ProgressService.addXp(xp, habit.xp);
+        setXp(result.newXp);
+        if (result.leveledUp) {
+          showToast(`Nivel ${result.newLevel}!`, "success", 5000);
+        }
+      }
+      return prev;
+    });
+  }, [xp, showToast]);
+
+  // Toggle meal
+  const toggleMeal = useCallback((id) => {
+    setMeals((prev) => prev.map((m) => m.id === id ? { ...m, done: !m.done } : m));
+  }, []);
+
+  // Reset daily habits
+  const resetDailyHabits = useCallback(() => {
+    const today = new Date().toISOString().split("T")[0];
+    setHabits((prev) => prev.map((h) => ({ ...h, done: false })));
+    setMeals((prev) => prev.map((m) => ({ ...m, done: false })));
+    setLastOpenDate(today);
+
+    const newMissions = ProgressService.generateDailyMissions(
+      habits.map((h) => ({ ...h, done: false })),
+      user
+    );
+    setDailyMissions(newMissions);
+  }, [habits, user]);
+
+  // Check day change
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    if (lastOpenDate && lastOpenDate !== today) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+      const allDoneYesterday = habits.every((h) => {
+        const entry = h.history?.find((e) => e.date === yesterdayStr);
+        return entry?.done;
+      });
+
+      if (!allDoneYesterday && lastOpenDate !== yesterdayStr) {
+        setStreak(0);
+        showToast(t("streak") + " resetada. Volte forte hoje!", "warning");
+      } else if (allDoneYesterday) {
+        setStreak((s) => {
+          const newStreak = s + 1;
+          setMaxStreak((m) => Math.max(m, newStreak));
+          return newStreak;
+        });
+      }
+
+      resetDailyHabits();
+    } else if (!lastOpenDate) {
+      setLastOpenDate(today);
+    }
+  }, [lastOpenDate, habits, resetDailyHabits, showToast, t]);
+
+  // Check achievements
+  useEffect(() => {
+    const level = ProgressService.calculateLevel(xp);
+    const newAchievements = ProgressService.checkAchievements(habits, xp, level, achievements);
+    if (newAchievements.length > 0) {
+      setAchievements((prev) => [...prev, ...newAchievements]);
+      newAchievements.forEach((id) => {
+        const ach = ACHIEVEMENTS.find((a) => a.id === id);
+        if (ach) {
+          showToast(`${ach.title}! +${ach.xp} XP`, "success", 4000);
+          if (ach.xp > 0) {
+            const result = ProgressService.addXp(xp, ach.xp);
+            setXp(result.newXp);
+          }
+        }
+      });
+    }
+  }, [habits, xp, achievements, showToast]);
+
+  // Backup
+  const createBackup = useCallback(() => {
+    const data = StorageService.exportAll();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `vidaforte_backup_${new Date().toISOString().split("T")[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(t("backupCreated"), "success");
+  }, [showToast, t]);
+
+  const restoreBackup = useCallback((file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (StorageService.importAll(data)) {
+          setUser(StorageService.get(STORAGE_KEYS.USER, DEFAULT_USER));
+          setHabits(StorageService.get(STORAGE_KEYS.HABITS, DEFAULT_HABITS));
+          setSettings(StorageService.get(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS));
+          setXp(StorageService.get(STORAGE_KEYS.XP, 0));
+          setStreak(StorageService.get(STORAGE_KEYS.STREAK, 0));
+          setMaxStreak(StorageService.get(STORAGE_KEYS.MAX_STREAK, 0));
+          setAchievements(StorageService.get(STORAGE_KEYS.ACHIEVEMENTS, []));
+          setMeals(StorageService.get(STORAGE_KEYS.MEALS, DEFAULT_MEALS));
+          setMessages(StorageService.get(STORAGE_KEYS.MESSAGES, []));
+          showToast(t("backupRestored"), "success");
+        }
+      } catch {
+        showToast("Erro ao restaurar backup", "error");
+      }
+    };
+    reader.readAsText(file);
+  }, [showToast, t]);
+
+  // Delete account
+  const deleteAccount = useCallback(() => {
+    StorageService.clear();
+    setUser(DEFAULT_USER);
+    setHabits(DEFAULT_HABITS);
+    setSettings(DEFAULT_SETTINGS);
+    setXp(0);
+    setStreak(0);
+    setMaxStreak(0);
+    setAchievements([]);
+    setMeals(DEFAULT_MEALS);
+    setMessages([]);
+    setDailyMissions([]);
+    showToast("Conta excluida com sucesso", "success");
+  }, [showToast]);
+
+  const levelInfo = ProgressService.calculateLevelProgress(xp);
+  const levelName = ProgressService.getLevelName(levelInfo.level);
+
+  const value = {
+    user, setUser,
+    habits, setHabits, toggleHabit,
+    settings, setSettings,
+    xp, setXp,
+    streak, setStreak,
+    maxStreak, setMaxStreak,
+    achievements, setAchievements,
+    meals, setMeals, toggleMeal,
+    messages, setMessages,
+    dailyMissions, setDailyMissions,
+    lastOpenDate, setLastOpenDate,
+    isOnline,
+    toast, showToast,
+    isLoading, setIsLoading,
+    t,
+    levelInfo,
+    levelName,
+    createBackup,
+    restoreBackup,
+    deleteAccount,
+    resetDailyHabits,
+    StorageService,
+  };
+
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+      <Toast toast={toast} />
+      {!isOnline && <OfflineBanner t={t} />}
+    </AppContext.Provider>
+  );
+}
+
+function useApp() {
+  const context = useContext(AppContext);
+  if (!context) throw new Error("useApp must be used within AppProvider");
+  return context;
+}
+
+// ============================================================
+// COMPONENTES DE UI REUTILIZAVEIS
+// ============================================================
+
+const Toast = memo(function Toast({ toast }) {
+  if (!toast) return null;
+  const colors = {
+    success: { bg: "#166534", border: "#22C55E" },
+    error: { bg: "#7F1D1D", border: "#E5484D" },
+    warning: { bg: "#713F12", border: "#F59E0B" },
+    info: { bg: CARD, border: BORDER },
+  };
+  const c = colors[toast.type] || colors.info;
+  return (
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-xl text-[13px] font-medium text-white shadow-lg"
+      style={{ background: c.bg, border: `1px solid ${c.border}`, maxWidth: "90%", textAlign: "center", animation: "fadeIn 0.3s ease" }}>
+      {toast.message}
+    </div>
+  );
+});
+
+const OfflineBanner = memo(function OfflineBanner({ t }) {
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 py-1.5 text-[11px] font-medium"
+      style={{ background: "#713F12", color: "#FEF3C7" }}>
+      <WifiOff size={12} /> {t("noConnection")}
+    </div>
+  );
+});
+
+function VLogo({ size = 30 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="vfGradA" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#BFF0A0" />
+          <stop offset="55%" stopColor="#39C463" />
+          <stop offset="100%" stopColor="#0F5C33" />
+        </linearGradient>
+        <linearGradient id="vfGradB" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#0B4026" />
+          <stop offset="60%" stopColor="#2E9A52" />
+          <stop offset="100%" stopColor="#8CE68F" />
+        </linearGradient>
+      </defs>
+      <path d="M8 12 L38 12 L58 58 L48 82 Z" fill="url(#vfGradB)" />
+      <path d="M92 12 L62 12 L42 58 L52 82 Z" fill="url(#vfGradA)" />
+      <path d="M38 12 L58 58 L50 45 Z" fill="#ffffff" opacity="0.18" />
+    </svg>
+  );
+}
+
+function AvatarCircle({ size = 40, iconSize = 18, image = null, gender = null }) {
+  const getGradient = () => {
+    if (gender === "male") return "linear-gradient(160deg,#1a2a30,#0a100c)";
+    if (gender === "female") return "linear-gradient(160deg,#2a1a20,#0a100c)";
+    return "linear-gradient(160deg,#1a2a20,#0a100c)";
+  };
+
+  return (
+    <div
+      className="rounded-full flex items-center justify-center border-2 shrink-0 overflow-hidden"
+      style={{
+        width: size,
+        height: size,
+        borderColor: GREEN,
+        background: getGradient(),
+      }}
+    >
+      {image ? (
+        <img src={image} alt="Avatar" className="w-full h-full object-cover" />
+      ) : (
+        <User size={iconSize} color={GREEN} strokeWidth={1.4} />
+      )}
+    </div>
+  );
+}
+
+function BigButton({ label = "Continuar", onClick, disabled, icon = ArrowRight }) {
+  const Icon = icon;
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full py-3.5 rounded-xl font-bold text-[14px] flex items-center justify-center gap-2 transition-all"
+      style={{ 
+        background: `linear-gradient(90deg,${GREEN},#22C55E)`, 
+        color: "#04140A", 
+        opacity: disabled ? 0.35 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
+      }}
+    >
+      {label} <Icon size={16} />
+    </button>
+  );
+}
+
+function Dots({ total, active }) {
+  return (
+    <div className="flex gap-1.5 justify-center pt-5 pb-1">
+      {Array.from({ length: total }).map((_, i) => (
+        <div
+          key={i}
+          className="h-1 rounded-full transition-all duration-300"
+          style={{ width: i === active ? 22 : 8, background: i <= active ? GREEN : BORDER }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function Card({ children, className = "", style = {} }) {
+  return (
+    <div className={`rounded-2xl p-4 ${className}`} style={{ background: CARD, border: `1px solid ${BORDER}`, ...style }}>
+      {children}
+    </div>
+  );
+}
+
+function SectionTitle({ children, className = "" }) {
+  return <p className={`text-white text-[13px] font-semibold mb-2.5 ${className}`}>{children}</p>;
+}
+
+function ProgressBar({ value, max = 100, color = GREEN, height = 8, className = "" }) {
+  const pct = Math.min(100, Math.max(0, (value / max) * 100));
+  return (
+    <div className={`rounded-full overflow-hidden ${className}`} style={{ height, background: CARD }}>
+      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color }} />
+    </div>
+  );
+}
+
+function IconBox({ icon: Icon, size = 16, bg = `${GREEN}22`, color = GREEN }) {
+  return (
+    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: bg }}>
+      <Icon size={size} color={color} />
+    </div>
+  );
+}
+
+function EmptyState({ icon: Icon, title, description }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-10 text-center">
+      <Icon size={40} color={DIM} className="mb-3" />
+      <p className="text-white text-[14px] font-medium mb-1">{title}</p>
+      <p className="text-[12px]" style={{ color: MUTED }}>{description}</p>
+    </div>
+  );
+}
+
+function LoadingSpinner({ size = 24 }) {
+  return (
+    <div className="flex items-center justify-center py-8">
+      <RefreshCw size={size} color={GREEN} className="animate-spin" />
+    </div>
+  );
+}
+
+function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel, confirmText = "Confirmar", cancelText = "Cancelar" }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)" }}>
+      <div className="rounded-2xl p-5 w-full max-w-sm" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        <div className="flex items-center gap-2 mb-3">
+          <AlertTriangle size={18} color={WARNING} />
+          <p className="text-white text-[15px] font-bold">{title}</p>
+        </div>
+        <p className="text-[13px] mb-5" style={{ color: MUTED }}>{message}</p>
+        <div className="flex gap-2">
+          <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-[13px] font-medium" style={{ background: BORDER, color: MUTED }}>
+            {cancelText}
+          </button>
+          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl text-[13px] font-bold" style={{ background: ERROR, color: "white" }}>
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LevelMap({ level, levelName }) {
+  const levels = LEVEL_MAP;
+  const currentIndex = levels.findIndex((l) => l.name === levelName.name);
+
+  return (
+    <div className="flex flex-col items-center py-4">
+      <div className="relative flex flex-col items-center gap-1">
+        {levels.map((l, i) => {
+          const isActive = i <= currentIndex;
+          const isCurrent = i === currentIndex;
+          return (
+            <div key={l.name} className="flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold border-2 transition-all ${isCurrent ? 'animate-pulse' : ''}`}
+                style={{
+                  background: isActive ? l.color : CARD,
+                  borderColor: isActive ? l.color : BORDER,
+                  color: isActive ? "#04140A" : DIM,
+                  boxShadow: isCurrent ? `0 0 12px ${l.color}44` : "none",
+                }}>
+                {i + 1}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[12px] font-semibold" style={{ color: isActive ? l.color : DIM }}>{l.label}</span>
+                {isCurrent && <span className="text-[10px]" style={{ color: MUTED }}>Voce esta aqui</span>}
+              </div>
+              {i < levels.length - 1 && (
+                <div className="absolute left-4 top-8 w-0.5 h-6" style={{ background: isActive ? l.color : BORDER }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+// ============================================================
+// TELAS DO APLICATIVO
+// ============================================================
+
+// ---------- LOGIN / CADASTRO ----------
+
+function AuthScreen({ onLogin, onRegister }) {
+  const [mode, setMode] = useState("login");
+  const [showPassword, setShowPassword] = useState(false);
+  const [form, setForm] = useState({
+    name: "", email: "", password: "", age: "", gender: "", height: "", weight: "", goal: "", avatar: null,
+  });
+  const [errors, setErrors] = useState({});
+  const { showToast } = useApp();
+
+  const validate = () => {
+    const errs = {};
+    if (!form.email.includes("@")) errs.email = "E-mail invalido";
+    if (form.password.length < 6) errs.password = "Minimo 6 caracteres";
+    if (mode === "register") {
+      if (!form.name.trim()) errs.name = "Nome obrigatorio";
+      if (!form.age || form.age < 10 || form.age > 120) errs.age = "Idade invalida";
+      if (!form.gender) errs.gender = "Selecione o sexo";
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validate()) return;
+    if (mode === "login") {
+      onLogin({ email: form.email });
+    } else {
+      onRegister({
+        name: form.name, email: form.email, age: parseInt(form.age), gender: form.gender,
+        height: form.height ? parseFloat(form.height) : null,
+        weight: form.weight ? parseFloat(form.weight) : null,
+        goal: form.goal, avatar: form.avatar, registeredAt: new Date().toISOString(),
+      });
+    }
+  };
+
+  const handleAvatarUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        showToast("Imagem muito grande. Max: 2MB", "error");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => setForm((f) => ({ ...f, avatar: ev.target.result }));
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <div className="flex-1 flex flex-col px-6 overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center justify-center text-center pt-8">
+        <VLogo size={64} />
+        <p className="text-white text-2xl font-extrabold mt-5 mb-2">
+          {mode === "login" ? "Bem-vindo de volta" : "Crie sua conta"}
+        </p>
+        <p className="text-[12px]" style={{ color: MUTED }}>
+          {mode === "login" ? "Entre para continuar sua evolucao" : "Comece sua jornada Vida Forte"}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3 pb-6">
+        {mode === "register" && (
+          <>
+            <div className="flex flex-col items-center mb-2">
+              <label className="relative w-24 h-24 rounded-full flex items-center justify-center border-2 cursor-pointer overflow-hidden"
+                style={{ borderColor: GREEN, borderStyle: form.avatar ? "solid" : "dashed", background: "linear-gradient(160deg,#1a2a20,#0a100c)" }}>
+                <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                {form.avatar ? (
+                  <img src={form.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <Camera size={28} color={DIM} />
+                )}
+              </label>
+              <p className="text-[11px] mt-1" style={{ color: MUTED }}>{form.avatar ? "Foto carregada" : "Toque para adicionar foto"}</p>
+            </div>
+
+            <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="Nome completo" className="w-full rounded-xl px-4 py-3 text-[13px] text-white outline-none"
+              style={{ background: CARD, border: `1px solid ${errors.name ? ERROR : BORDER}` }} />
+            {errors.name && <p className="text-[11px]" style={{ color: ERROR }}>{errors.name}</p>}
+
+            <div className="flex gap-2">
+              <select value={form.gender} onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value }))}
+                className="flex-1 rounded-xl px-4 py-3 text-[13px] text-white outline-none appearance-none"
+                style={{ background: CARD, border: `1px solid ${errors.gender ? ERROR : BORDER}` }}>
+                <option value="" style={{ background: CARD }}>Sexo</option>
+                <option value="male" style={{ background: CARD }}>Masculino</option>
+                <option value="female" style={{ background: CARD }}>Feminino</option>
+                <option value="other" style={{ background: CARD }}>Outro</option>
+              </select>
+              <input value={form.age} onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))}
+                type="number" placeholder="Idade" className="w-24 rounded-xl px-4 py-3 text-[13px] text-white outline-none"
+                style={{ background: CARD, border: `1px solid ${errors.age ? ERROR : BORDER}` }} />
+            </div>
+            {(errors.gender || errors.age) && <p className="text-[11px]" style={{ color: ERROR }}>{errors.gender || errors.age}</p>}
+
+            <div className="flex gap-2">
+              <input value={form.height} onChange={(e) => setForm((f) => ({ ...f, height: e.target.value }))}
+                type="number" placeholder="Altura (cm)" className="flex-1 rounded-xl px-4 py-3 text-[13px] text-white outline-none"
+                style={{ background: CARD, border: `1px solid ${BORDER}` }} />
+              <input value={form.weight} onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))}
+                type="number" placeholder="Peso (kg)" className="flex-1 rounded-xl px-4 py-3 text-[13px] text-white outline-none"
+                style={{ background: CARD, border: `1px solid ${BORDER}` }} />
+            </div>
+
+            <select value={form.goal} onChange={(e) => setForm((f) => ({ ...f, goal: e.target.value }))}
+              className="w-full rounded-xl px-4 py-3 text-[13px] text-white outline-none appearance-none"
+              style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+              <option value="" style={{ background: CARD }}>Objetivo principal</option>
+              <option value="saude" style={{ background: CARD }}>Saude e disposicao</option>
+              <option value="disciplina" style={{ background: CARD }}>Disciplina e constancia</option>
+              <option value="corpo" style={{ background: CARD }}>Evolucao fisica</option>
+              <option value="mente" style={{ background: CARD }}>Foco e equilibrio mental</option>
+            </select>
+          </>
+        )}
+
+        <input value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+          type="email" placeholder="E-mail" className="w-full rounded-xl px-4 py-3 text-[13px] text-white outline-none"
+          style={{ background: CARD, border: `1px solid ${errors.email ? ERROR : BORDER}` }} />
+        {errors.email && <p className="text-[11px]" style={{ color: ERROR }}>{errors.email}</p>}
+
+        <div className="relative">
+          <input value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+            type={showPassword ? "text" : "password"} placeholder="Senha"
+            className="w-full rounded-xl px-4 py-3 text-[13px] text-white outline-none pr-10"
+            style={{ background: CARD, border: `1px solid ${errors.password ? ERROR : BORDER}` }} />
+          <button onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2">
+            {showPassword ? <EyeOff size={16} color={MUTED} /> : <Eye size={16} color={MUTED} />}
+          </button>
+        </div>
+        {errors.password && <p className="text-[11px]" style={{ color: ERROR }}>{errors.password}</p>}
+
+        <button onClick={handleSubmit} className="w-full py-3.5 rounded-xl font-bold text-[14px] mt-2"
+          style={{ background: `linear-gradient(90deg,${GREEN},#22C55E)`, color: "#04140A" }}>
+          {mode === "login" ? "Entrar" : "Criar conta"}
+        </button>
+
+        {mode === "login" && (
+          <button className="text-[12px] text-center mt-1" style={{ color: MUTED }}>
+            Esqueceu a senha?
+          </button>
+        )}
+
+        <div className="flex items-center gap-3 my-2">
+          <div className="flex-1 h-px" style={{ background: BORDER }} />
+          <span className="text-[11px]" style={{ color: DIM }}>ou</span>
+          <div className="flex-1 h-px" style={{ background: BORDER }} />
+        </div>
+
+        <button className="w-full py-3 rounded-xl text-[13px] font-medium flex items-center justify-center gap-2"
+          style={{ background: CARD, border: `1px solid ${BORDER}`, color: "white" }}>
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="white" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="white" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="white" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="white" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Entrar com Google
+        </button>
+
+        <button onClick={() => setMode(mode === "login" ? "register" : "login")} className="text-[12px] text-center mt-2" style={{ color: GREEN }}>
+          {mode === "login" ? "Nao tem conta? Cadastre-se" : "Ja tem conta? Entre"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------- ONBOARDING ----------
+
+const GOALS = [
+  { id: "saude", label: "Saude", desc: "Mais energia e disposicao" },
+  { id: "disciplina", label: "Disciplina", desc: "Construir constancia real" },
+  { id: "corpo", label: "Corpo", desc: "Evoluir fisicamente" },
+  { id: "mente", label: "Mente", desc: "Foco e equilibrio emocional" },
+];
+
+const PILLARS = [
+  { icon: Brain, title: "Evolucao", desc: "Progresso visivel todos os dias." },
+  { icon: Heart, title: "Companhia", desc: "A Dra. Helena acompanha sua rotina." },
+  { icon: Fingerprint, title: "Identidade", desc: "Seu avatar representa quem voce esta se tornando." },
+  { icon: TrendingUp, title: "Progresso", desc: "Indices e sequencias que mostram o caminho." },
+  { icon: Globe, title: "Comunidade", desc: "Pertencer a quem tambem escolheu evoluir." },
+];
+
+function Onboarding({ onFinish }) {
+  const [step, setStep] = useState(0);
+  const [goal, setGoal] = useState(null);
+  const [uploaded, setUploaded] = useState(false);
+  const total = 5;
+  const next = () => (step === total - 1 ? onFinish() : setStep((s) => s + 1));
+  const back = () => setStep((s) => Math.max(0, s - 1));
+
+  return (
+    <div className="flex-1 flex flex-col">
+      <div className="flex items-center px-5 pt-4">
+        {step > 0 ? <button onClick={back}><ArrowLeft size={16} color={MUTED} /></button> : <div className="w-4" />}
+        <div className="flex-1"><Dots total={total} active={step} /></div>
+        <div className="w-4" />
+      </div>
+
+      {step === 0 && (
+        <div className="flex-1 flex flex-col px-7">
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
+            <div className="mb-6"><VLogo size={64} /></div>
+            <p className="text-white text-2xl font-extrabold leading-snug mb-3">
+              Voce contra quem<br /> voce foi ontem.
+            </p>
+            <p className="text-[13px] leading-relaxed" style={{ color: MUTED }}>
+              O VIDA FORTE nao e um app de checklist.<br />E um companheiro de evolucao pessoal.
+            </p>
+          </div>
+          <BigButton label="Comecar" onClick={next} />
+        </div>
+      )}
+
+      {step === 1 && (
+        <div className="flex-1 flex flex-col px-7">
+          <p className="text-white text-lg font-bold mb-1 mt-2">Os 5 pilares do Vida Forte</p>
+          <p className="text-[12px] mb-4" style={{ color: MUTED }}>Tudo aqui existe para reforcar um destes principios.</p>
+          <div className="flex-1 flex flex-col gap-2.5 overflow-y-auto">
+            {PILLARS.map((p) => {
+              const Icon = p.icon;
+              return (
+                <div key={p.title} className="flex items-start gap-3 rounded-2xl p-3.5" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${GREEN}22` }}>
+                    <Icon size={16} color={GREEN} />
+                  </div>
+                  <div>
+                    <p className="text-white text-[13px] font-semibold">{p.title}</p>
+                    <p className="text-[11.5px] leading-snug" style={{ color: MUTED }}>{p.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="pt-4"><BigButton onClick={next} /></div>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="flex-1 flex flex-col px-7">
+          <p className="text-white text-lg font-bold mb-1 mt-2">Qual evolucao voce busca agora?</p>
+          <p className="text-[12px] mb-4" style={{ color: MUTED }}>A Dra. Helena vai adaptar seu plano com base nisso.</p>
+          <div className="flex-1 grid grid-cols-1 gap-2.5">
+            {GOALS.map((g) => {
+              const active = goal === g.id;
+              return (
+                <button key={g.id} onClick={() => setGoal(g.id)} className="flex items-center justify-between p-4 rounded-2xl border text-left"
+                  style={{ borderColor: active ? GREEN : BORDER, background: active ? `${GREEN}0F` : CARD }}>
+                  <div>
+                    <p className="text-white text-[14px] font-semibold">{g.label}</p>
+                    <p className="text-[11.5px]" style={{ color: MUTED }}>{g.desc}</p>
+                  </div>
+                  <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
+                    style={{ borderColor: active ? GREEN : BORDER, background: active ? GREEN : "transparent" }}>
+                    {active && <Check size={11} color="#04140A" strokeWidth={3} />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="pt-4"><BigButton onClick={next} disabled={!goal} /></div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="flex-1 flex flex-col px-7">
+          <p className="text-white text-lg font-bold mb-1 mt-2">Crie seu avatar de evolucao</p>
+          <p className="text-[12px] mb-5" style={{ color: MUTED }}>
+            Envie uma foto sua. Ele evolui junto com voce — sempre voce, nunca um desenho.
+          </p>
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <button onClick={() => setUploaded(true)} className="relative w-40 h-40 rounded-full flex items-center justify-center border-2 mb-5"
+              style={{ borderColor: GREEN, borderStyle: uploaded ? "solid" : "dashed", background: "linear-gradient(160deg,#1a2a20,#0a100c)" }}>
+              {uploaded ? <User size={56} color={GREEN} strokeWidth={1.3} /> : <Camera size={32} color={DIM} />}
+            </button>
+            <p className="text-[12px]" style={{ color: MUTED }}>{uploaded ? "Foto recebida — avatar pronto." : "Toque para enviar sua foto"}</p>
+          </div>
+          <div className="pt-4"><BigButton onClick={next} disabled={!uploaded} /></div>
+        </div>
+      )}
+
+      {step === 4 && (
+        <div className="flex-1 flex flex-col px-7 items-center text-center">
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="mb-5"><AvatarCircle size={90} iconSize={38} /></div>
+            <p className="text-[12px] font-semibold tracking-widest mb-2" style={{ color: GREEN }}>SUA MENTORA</p>
+            <p className="text-white text-xl font-bold mb-3">Dra. Helena</p>
+            <p className="text-[13.5px] leading-relaxed px-2" style={{ color: "#D7E5DC" }}>
+              "A partir de hoje eu vou acompanhar sua rotina, comemorar suas conquistas e ajustar seu
+              plano quando voce precisar. Nao estou aqui para julgar — estou aqui para lembrar quem
+              voce decidiu se tornar."
+            </p>
+          </div>
+          <div className="pt-4 w-full"><BigButton label="Pronto para evoluir" onClick={next} /></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- ABERTURA DIARIA ----------
+
+function DailyOpening({ onDone }) {
+  const { user, habits, streak, levelInfo, settings } = useApp();
+  const [phase, setPhase] = useState(0);
+  const [philLine, setPhilLine]
+  const [philLine, setPhilLine] = useState(0);
+  const [coachLine, setCoachLine] = useState(-1);
+  const philosophy = ["Disciplina.", "Constancia.", "Evolucao."];
+
+  const coachLines = ProgressService.generateCoachMessage(
+    habits, user, streak, levelInfo.level
+  );
+
+  useEffect(() => {
+    if (phase === 0) {
+      const t = setTimeout(() => setPhase(1), 1900);
+      return () => clearTimeout(t);
+    }
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 1) return;
+    if (philLine >= philosophy.length) {
+      const t = setTimeout(() => setPhase(2), 500);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(() => setPhilLine((l) => l + 1), 750);
+    return () => clearTimeout(t);
+  }, [phase, philLine]);
+
+  useEffect(() => {
+    if (phase !== 2) return;
+    const timers = coachLines.map((_, i) => setTimeout(() => setCoachLine(i), 500 + i * 1000));
+    return () => timers.forEach(clearTimeout);
+  }, [phase, coachLines.length]);
+
+  return (
+    <div className="flex-1 flex flex-col">
+      {phase === 0 && (
+        <div className="flex-1 flex flex-col items-center justify-center relative">
+          <div className="absolute w-64 h-64 rounded-full animate-pulse"
+            style={{ background: `radial-gradient(circle, ${GREEN}55 0%, transparent 70%)` }} />
+          <div className="relative"><VLogo size={72} /></div>
+          <p className="relative text-white font-extrabold tracking-[0.2em] text-lg mt-5">
+            VIDA <span style={{ color: GREEN }}>FORTE</span>
+          </p>
+          <p className="relative text-[12px] tracking-widest mt-2" style={{ color: MUTED }}>
+            SUA EVOLUCAO COMECA AGORA.
+          </p>
+        </div>
+      )}
+
+      {phase === 1 && (
+        <div className="flex-1 flex flex-col items-center justify-center px-10">
+          <div className="flex flex-col items-center gap-3 min-h-[140px] justify-center">
+            {philosophy.slice(0, philLine).map((l, i) => (
+              <p key={i} className="text-xl font-bold tracking-wide" style={{ color: `${GREEN}55` }}>{l}</p>
+            ))}
+            {philLine < philosophy.length && (
+              <p className="text-white text-2xl font-extrabold tracking-wide">{philosophy[philLine]}</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {phase === 2 && (
+        <div className="flex-1 flex flex-col justify-center px-6">
+          <div className="flex items-center gap-2.5 mb-6">
+            <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ background: CARD, border: `1px solid ${GREEN}66` }}>
+              {settings.coachMode === "voz" ? <Mic size={18} color={GREEN} /> : <Type size={18} color={GREEN} />}
+            </div>
+            <div>
+              <p className="text-[12px] font-semibold" style={{ color: GREEN }}>Dra. Helena</p>
+              <p className="text-[11px]" style={{ color: MUTED }}>{settings.coachMode === "voz" ? "falando agora" : "mensagem de texto"}</p>
+            </div>
+            {settings.coachMode === "voz" && (
+              <div className="ml-auto flex items-end gap-[3px] h-5">
+                {[6, 12, 8, 16, 10].map((h, i) => (
+                  <span key={i} className="w-[3px] rounded-full animate-pulse" style={{ height: h, background: GREEN, animationDelay: `${i * 0.12}s` }} />
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col gap-4">
+            {coachLines.map((l, i) => {
+              const visible = i <= coachLine;
+              return (
+                <p key={i} className="text-[15px] leading-snug flex items-center gap-2 transition-all duration-500"
+                  style={{ color: "#D7E5DC", opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(6px)" }}>
+                  {l}
+                </p>
+              );
+            })}
+          </div>
+          <button onClick={onDone} disabled={coachLine < coachLines.length - 1}
+            className="mt-10 w-full py-3.5 rounded-xl font-bold text-[14px] flex items-center justify-center gap-2 transition-opacity"
+            style={{ background: `linear-gradient(90deg,${GREEN},#22C55E)`, color: "#04140A", opacity: coachLine < coachLines.length - 1 ? 0.35 : 1 }}>
+            Sim, vamos continuar <ArrowRight size={16} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- HOME ----------
+
+function HomeScreen({ onOpenChat, onOpenAlimentacao, onOpenLevelMap }) {
+  const { habits, toggleHabit, user, streak, levelInfo, levelName, dailyMissions, t, settings } = useApp();
+  const doneCount = habits.filter((h) => h.done).length;
+  const totalXp = habits.filter((h) => h.done).reduce((s, h) => s + h.xp, 0);
+
+  const getIcon = (iconName) => {
+    const icons = { Droplet, Dumbbell, Utensils, BookOpen, Moon, Brain };
+    return icons[iconName] || Check;
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto px-5 pt-5 pb-2">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <p className="text-white font-bold text-[17px]">Bom dia, {user.name || "guerreiro"}! 👋</p>
+          <p className="text-[12px]" style={{ color: MUTED }}>Pronto para mais um dia de evolucao?</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Bell size={17} color={MUTED} />
+          <div className="flex items-center gap-1 rounded-full px-2.5 py-1" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+            <Flame size={13} color="#F59E0B" />
+            <span className="text-[11px] text-white font-semibold">{streak} dias</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Avatar */}
+      <div className="rounded-2xl mb-4 flex items-center justify-center py-6" style={{ background: "#0B0F0C", border: `1px solid ${BORDER}` }}>
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-48 h-48 rounded-full" style={{ background: `radial-gradient(circle, ${GREEN}44 0%, transparent 70%)` }} />
+          <AvatarCircle size={128} iconSize={54} image={user.avatar} gender={user.gender} />
+        </div>
+      </div>
+
+      {/* XP e Nivel */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: GREEN }}>
+            <Sparkles size={13} /> {levelName.label.toUpperCase()} — NIVEL {levelInfo.level}
+          </span>
+          <span className="text-[12px]" style={{ color: MUTED }}>{levelInfo.current.toLocaleString()} / {levelInfo.target.toLocaleString()} XP</span>
+        </div>
+        <ProgressBar value={levelInfo.current} max={levelInfo.target} height={8} />
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-3 gap-2.5 mb-4">
+        <Card className="text-center py-3">
+          <p className="text-[10px] mb-1" style={{ color: MUTED }}>Indice VF</p>
+          <p className="text-xl font-extrabold" style={{ color: GREEN }}>82<span className="text-[10px]" style={{ color: DIM }}>/100</span></p>
+        </Card>
+        <Card className="text-center py-3">
+          <p className="text-[10px] mb-1" style={{ color: MUTED }}>XP Hoje</p>
+          <p className="text-xl font-extrabold text-white">{totalXp}</p>
+        </Card>
+        <Card className="text-center py-3">
+          <p className="text-[10px] mb-1" style={{ color: MUTED }}>Sequencia</p>
+          <p className="text-xl font-extrabold flex items-center justify-center gap-1" style={{ color: GREEN }}>
+            <Flame size={14} color="#F59E0B" />{streak}
+          </p>
+        </Card>
+      </div>
+
+      {/* Missao do Dia */}
+      <Card className="mb-4">
+        <div className="flex items-center gap-2.5 mb-2">
+          <IconBox icon={Target} />
+          <div className="flex-1">
+            <p className="text-[13px] text-white font-medium">Missao do dia</p>
+            <p className="text-[11px]" style={{ color: MUTED }}>Conclua todos os habitos diarios</p>
+          </div>
+          <span className="text-[11px] font-semibold" style={{ color: GREEN }}>+150 XP</span>
+        </div>
+        <ProgressBar value={doneCount} max={habits.length} height={6} />
+        <p className="text-[11px] font-medium mt-1" style={{ color: GREEN }}>{doneCount}/{habits.length} concluidos</p>
+      </Card>
+
+      {/* Missoes Inteligentes */}
+      {dailyMissions.length > 0 && (
+        <>
+          <SectionTitle>Missoes Inteligentes</SectionTitle>
+          <div className="flex flex-col gap-2 mb-4">
+            {dailyMissions.slice(0, 3).map((m) => {
+              const Icon = getIcon(m.icon);
+              const habit = habits.find((h) => h.id === m.id);
+              const isDone = habit?.done;
+              return (
+                <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl" 
+                  style={{ background: isDone ? `${GREEN}0F` : CARD, border: `1px solid ${isDone ? GREEN : BORDER}` }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: isDone ? GREEN : "#131A15" }}>
+                    <Icon size={14} color={isDone ? "#04140A" : DIM} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[13px] text-white">{m.label}</p>
+                    <p className="text-[10px]" style={{ color: DIM }}>{m.desc}</p>
+                  </div>
+                  <span className="text-[10px] font-medium" style={{ color: GREEN }}>+{m.xp} XP</span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Habitos */}
+      <div className="flex items-center justify-between mb-2.5">
+        <SectionTitle className="mb-0">Habitos de hoje</SectionTitle>
+        <span className="text-[11px]" style={{ color: MUTED }}>{doneCount}/{habits.length}</span>
+      </div>
+      <div className="flex flex-col gap-2 mb-4">
+        {habits.map((h) => {
+          const Icon = getIcon(h.icon);
+          return (
+            <button key={h.id} onClick={() => toggleHabit(h.id)} className="flex items-center gap-3 p-2.5 rounded-xl border text-left"
+              style={{ borderColor: h.done ? BORDER : "#161C18", background: h.done ? CARD : "#0A0D0B" }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: h.done ? GREEN : "#131A15" }}>
+                <Icon size={14} color={h.done ? "#04140A" : DIM} />
+              </div>
+              <div className="flex-1">
+                <p className="text-[13px] text-white">{h.label}</p>
+                <p className="text-[10px]" style={{ color: DIM }}>{h.meta}</p>
+              </div>
+              <span className="text-[10px] font-medium mr-1" style={{ color: GREEN }}>+{h.xp} XP</span>
+              <div className="w-5 h-5 rounded-full flex items-center justify-center border-2"
+                style={{ borderColor: h.done ? GREEN : BORDER, background: h.done ? GREEN : "transparent" }}>
+                {h.done && <Check size={11} color="#04140A" strokeWidth={3} />}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Coach */}
+      <button onClick={onOpenChat} className="w-full text-left rounded-2xl p-4 mb-4 flex gap-3"
+        style={{ background: `linear-gradient(135deg,${CARD},#0A140D)`, border: `1px solid ${BORDER}` }}>
+        <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ background: "#131A15", border: `1px solid ${GREEN}66` }}>
+          <User size={20} color={GREEN} />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            {settings.coachMode === "voz" ? <Mic size={12} color={GREEN} /> : <Type size={12} color={GREEN} />}
+            <p className="text-[12px] font-semibold" style={{ color: GREEN }}>Coach IA · Dra. Helena</p>
+          </div>
+          <p className="text-[12.5px] leading-snug" style={{ color: "#D7E5DC" }}>
+            Voce esta evoluindo muito bem, {user.name || "guerreiro"}! Toque aqui para conversar.
+          </p>
+        </div>
+      </button>
+
+      {/* Mapa de Evolucao */}
+      <button onClick={onOpenLevelMap} className="w-full flex items-center justify-between py-3 mt-1 border-t" style={{ borderColor: BORDER }}>
+        <span className="text-[13px]" style={{ color: MUTED }}>Ver mapa de evolucao</span>
+        <ChevronRight size={15} color={DIM} />
+      </button>
+
+      <button onClick={onOpenAlimentacao} className="w-full flex items-center justify-between py-3 border-t" style={{ borderColor: BORDER }}>
+        <span className="text-[13px]" style={{ color: MUTED }}>Ver plano de alimentacao</span>
+        <ChevronRight size={15} color={DIM} />
+      </button>
+    </div>
+  );
+}
+
+// ---------- HABITOS ----------
+
+function WeekTrack({ week }) {
+  const labels = ["S", "T", "Q", "Q", "S", "S", "D"];
+  return (
+    <div className="flex gap-1">
+      {week.map((v, i) => (
+        <div key={i} className="flex flex-col items-center gap-0.5">
+          <div className="w-4 h-4 rounded-[4px] flex items-center justify-center" style={{ background: v ? GREEN : BORDER }}>
+            {v === 1 && <Check size={9} color="#04140A" strokeWidth={3} />}
+          </div>
+          <span className="text-[8px]" style={{ color: DIM }}>{labels[i]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HabitosScreen() {
+  const { habits, toggleHabit } = useApp();
+  const [filter, setFilter] = useState("hoje");
+  const doneCount = habits.filter((h) => h.done).length;
+
+  const getIcon = (iconName) => {
+    const icons = { Droplet, Dumbbell, Utensils, BookOpen, Moon, Brain };
+    return icons[iconName] || Check;
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto px-5 pt-5 pb-4">
+      <Card className="flex items-center gap-4 mb-4">
+        <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
+          <svg width="56" height="56" className="-rotate-90 absolute">
+            <circle cx="28" cy="28" r="24" stroke={BORDER} strokeWidth="5" fill="none" />
+            <circle cx="28" cy="28" r="24" stroke={GREEN} strokeWidth="5" fill="none" strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 24} strokeDashoffset={2 * Math.PI * 24 * (1 - doneCount / habits.length)} />
+          </svg>
+          <span className="text-[13px] font-extrabold text-white">{doneCount}/{habits.length}</span>
+        </div>
+        <div>
+          <p className="text-white text-[13px] font-semibold">
+            {doneCount === habits.length ? "Dia perfeito. Sua constancia esta solida." : "Falta pouco para fechar o dia com evolucao."}
+          </p>
+          <p className="text-[11px] mt-0.5" style={{ color: MUTED }}>A Dra. Helena esta acompanhando seu ritmo</p>
+        </div>
+      </Card>
+
+      <div className="flex rounded-full p-1 mb-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        {[{ id: "hoje", l: "Hoje" }, { id: "semana", l: "Semana" }, { id: "todos", l: "Todos" }].map((f) => (
+          <button key={f.id} onClick={() => setFilter(f.id)} className="flex-1 py-1.5 rounded-full text-[12px] font-medium transition-colors"
+            style={{ background: filter === f.id ? GREEN : "transparent", color: filter === f.id ? "#04140A" : MUTED }}>
+            {f.l}
+          </button>
+        ))}
+      </div>
+
+      {habits.map((h) => {
+        const Icon = getIcon(h.icon);
+        return (
+          <Card key={h.id} className="mb-3">
+            <div className="flex items-center gap-3 mb-3">
+              <button onClick={() => toggleHabit(h.id)} className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: h.done ? GREEN : "#131A15" }}>
+                <Icon size={17} color={h.done ? "#04140A" : DIM} />
+              </button>
+              <div className="flex-1">
+                <p className="text-white text-[14px] font-semibold">{h.label}</p>
+                <p className="text-[11px]" style={{ color: MUTED }}>{h.meta}</p>
+              </div>
+              <div className="text-right">
+                <div className="flex items-center gap-1 justify-end">
+                  <Flame size={12} color={GREEN} />
+                  <span className="text-[12px] text-white font-semibold">{h.streak || 0}</span>
+                </div>
+                <span className="text-[10px]" style={{ color: DIM }}>dias seguidos</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <WeekTrack week={[1,1,1,0,1,1,0]} />
+              <span className="text-[10px] font-medium" style={{ color: GREEN }}>+{h.xp} XP</span>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------- ALIMENTACAO ----------
+
+const MACROS = [
+  { label: "Proteina", value: 68, goal: 140, unit: "g", color: GREEN },
+  { label: "Carboidrato", value: 145, goal: 220, unit: "g", color: "#7CD9FF" },
+  { label: "Gordura", value: 32, goal: 60, unit: "g", color: "#FFD37C" },
+];
+
+function AlimentacaoScreen({ onBack }) {
+  const { meals, toggleMeal } = useApp();
+  const [expandedId, setExpandedId] = useState("almoco");
+  const totalKcal = meals.reduce((s, m) => s + m.kcal, 0);
+  const doneKcal = meals.filter((m) => m.done).reduce((s, m) => s + m.kcal, 0);
+
+  return (
+    <div className="flex-1 flex flex-col">
+      <div className="flex items-center gap-3 px-5 pt-5 pb-3">
+        <button onClick={onBack}><ArrowLeft size={18} color={MUTED} /></button>
+        <p className="text-white font-bold text-[15px]">Alimentacao</p>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 pb-4">
+        <Card className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2"><Flame size={15} color={GREEN} /><span className="text-white text-[13px] font-semibold">Energia do dia</span></div>
+            <span className="text-[12px]" style={{ color: MUTED }}>{doneKcal}/{totalKcal} kcal</span>
+          </div>
+          <ProgressBar value={doneKcal} max={totalKcal} height={8} />
+          {MACROS.map((m) => (
+            <div key={m.label} className="mt-2.5">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11.5px]" style={{ color: "#D7E5DC" }}>{m.label}</span>
+                <span className="text-[11px]" style={{ color: MUTED }}>{m.value}{m.unit} / {m.goal}{m.unit}</span>
+              </div>
+              <ProgressBar value={m.value} max={m.goal} height={6} color={m.color} />
+            </div>
+          ))}
+        </Card>
+
+        <Card className="mb-4 flex gap-3" style={{ background: `linear-gradient(135deg,${CARD},#0A140D)` }}>
+          <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "#131A15", border: `1px solid ${GREEN}66` }}>
+            <User size={16} color={GREEN} />
+          </div>
+          <div>
+            <p className="text-[11.5px] font-semibold mb-0.5" style={{ color: GREEN }}>Dica da Dra. Helena</p>
+            <p className="text-[12.5px] leading-snug" style={{ color: "#D7E5DC" }}>
+              Sua proteina esta 20% abaixo da meta essa semana. Inclua ovos ou iogurte no lanche de hoje.
+            </p>
+          </div>
+        </Card>
+
+        <SectionTitle>Refeicoes de hoje</SectionTitle>
+        {meals.map((meal) => {
+          const expanded = expandedId === meal.id;
+          return (
+            <div key={meal.id} className="rounded-2xl mb-3 overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+              <button onClick={() => setExpandedId(expanded ? null : meal.id)} className="w-full flex items-center gap-3 p-4">
+                <button onClick={(e) => { e.stopPropagation(); toggleMeal(meal.id); }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: meal.done ? GREEN : "#131A15" }}>
+                  {meal.done && <Check size={15} color="#04140A" strokeWidth={3} />}
+                </button>
+                <div className="flex-1 text-left">
+                  <p className="text-white text-[13.5px] font-semibold">{meal.title}</p>
+                  <p className="text-[11px]" style={{ color: MUTED }}>{meal.time} · {meal.kcal} kcal</p>
+                </div>
+                <ChevronDown size={16} color={DIM} style={{ transform: expanded ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }} />
+              </button>
+              {expanded && (
+                <div className="px-4 pb-4">
+                  <div className="border-t pt-3 flex flex-col gap-1.5 mb-3" style={{ borderColor: BORDER }}>
+                    {meal.items.map((it) => (
+                      <p key={it} className="text-[12.5px] flex items-center gap-2" style={{ color: "#D7E5DC" }}>
+                        <span className="w-1 h-1 rounded-full" style={{ background: GREEN }} />{it}
+                      </p>
+                    ))}
+                  </div>
+                  <button className="flex items-center gap-1.5 text-[11.5px] font-medium" style={{ color: GREEN }}>
+                    <RefreshCw size={12} /> Trocar refeicao
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------- ESTATISTICAS ----------
+
+const chartData = [{ d: "01/05", v: 41 }, { d: "08/05", v: 55 }, { d: "15/05", v: 68 }, { d: "22/05", v: 60 }, { d: "31/05", v: 82 }];
+const STATS = [
+  { label: "Saude", value: 85 }, { label: "Sono", value: 78 }, { label: "Nutricao", value: 82 },
+  { label: "Hidratacao", value: 90 }, { label: "Leitura", value: 65 }, { label: "Meditacao", value: 72 },
+  { label: "Produtividade", value: 88 }, { label: "Consistencia", value: 92 },
+];
+
+function EstatisticasScreen() {
+  const { achievements } = useApp();
+  const [period, setPeriod] = useState("Mes");
+
+  const getIcon = (iconName) => {
+    const icons = { Flame, Dumbbell, Trophy, Award, Droplet, TrendingUp, Sparkles, Star, Zap, Crown, CheckCircle2, BookOpen };
+    return icons[iconName] || Check;
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto px-5 pt-5 pb-4">
+      <p className="text-white font-bold text-[16px] mb-4">Estatisticas</p>
+
+      <div className="flex rounded-full p-1 mb-5" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        {["Semana", "Mes", "Ano"].map((p) => (
+          <button key={p} onClick={() => setPeriod(p)} className="flex-1 py-1.5 rounded-full text-[12px] font-medium transition-colors"
+            style={{ background: period === p ? GREEN : "transparent", color: period === p ? "#04140A" : MUTED }}>{p}</button>
+        ))}
+      </div>
+
+      <Card className="mb-5">
+        {STATS.map((s) => (
+          <div key={s.label} className="mb-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[13px]" style={{ color: "#D7E5DC" }}>{s.label}</span>
+              <span className="text-[13px] text-white font-semibold">{s.value}%</span>
+            </div>
+            <ProgressBar value={s.value} max={100} height={6} />
+          </div>
+        ))}
+      </Card>
+
+      <Card className="mb-5">
+        <p className="text-[13px] text-white font-semibold mb-3">Evolucao do Indice</p>
+        <div style={{ width: "100%", height: 110 }}>
+          <ResponsiveContainer>
+            <LineChart data={chartData}>
+              <XAxis dataKey="d" tick={{ fill: DIM, fontSize: 9 }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0, 100]} hide />
+              <Line type="monotone" dataKey="v" stroke={GREEN} strokeWidth={2.5} dot={{ r: 2, fill: GREEN }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[13px] text-white font-semibold">Conquistas</p>
+          <span className="text-[11px]" style={{ color: MUTED }}>{achievements.length}/{ACHIEVEMENTS.length}</span>
+        </div>
+        <div className="grid grid-cols-4 gap-2.5">
+          {ACHIEVEMENTS.map((ach, i) => {
+            const Icon = getIcon(ach.icon);
+            const unlocked = achievements.includes(ach.id);
+            return (
+              <div key={ach.id} className="aspect-square rounded-xl flex items-center justify-center relative"
+                style={{ background: "linear-gradient(160deg,#131A15,#0A0D0B)", border: `1px solid ${unlocked ? GREEN + "55" : BORDER}` }}>
+                <Icon size={17} color={unlocked ? GREEN : "#3A463F"} />
+                {unlocked && <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full" style={{ background: GREEN }} />}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+
+// ---------- CHAT / CALL ----------
+
+const INITIAL_MESSAGES = [
+  { from: "helena", text: "Bom dia! Vi que voce dormiu bem essa noite. Pronto para mais um dia de evolucao?" },
+  { from: "helena", text: "Lembre-se: pequenas acoes diarias constroem grandes transformacoes." },
+];
+const QUICK_REPLIES = ["Como esta meu Indice essa semana?", "Me da uma missao para hoje", "Nao consegui treinar hoje"];
+
+function ChatScreen({ onBack, onCall }) {
+  const { messages, setMessages, user } = useApp();
+  const [input, setInput] = useState("");
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const send = (text) => {
+    const t = text ?? input;
+    if (!t.trim()) return;
+    setMessages((m) => [...m, { from: "user", text: t, time: new Date().toISOString() }]);
+    setInput("");
+    setTimeout(() => {
+      const responses = [
+        "Entendi. Vou levar isso em conta no seu plano — voce nao esta sozinho nessa.",
+        "Otima observacao! Vou ajustar suas metas para refletir isso.",
+        "Continue assim! Cada passo conta na sua jornada.",
+        "Lembre-se: a consistencia e mais importante que a perfeicao.",
+      ];
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      setMessages((m) => [...m, { from: "helena", text: randomResponse, time: new Date().toISOString() }]);
+    }, 900);
+  };
+
+  return (
+    <div className="flex-1 flex flex-col">
+      <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b" style={{ borderColor: BORDER }}>
+        <button onClick={onBack}><ArrowLeft size={18} color={MUTED} /></button>
+        <AvatarCircle size={36} iconSize={16} image={user.avatar} gender={user.gender} />
+        <div className="flex-1">
+          <p className="text-white text-[13px] font-semibold">Dra. Helena</p>
+          <p className="text-[10.5px]" style={{ color: GREEN }}>● sua mentora, sempre por perto</p>
+        </div>
+        <button onClick={onCall} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: `${GREEN}22` }}>
+          <Phone size={15} color={GREEN} />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
+        {messages.length === 0 ? (
+          <EmptyState icon={MessageCircle} title="Inicie uma conversa" description="Fale com a Dra. Helena sobre seus habitos e evolucao" />
+        ) : (
+          messages.map((m, i) => {
+            const isHelena = m.from === "helena";
+            return (
+              <div key={i} className={`flex ${isHelena ? "justify-start" : "justify-end"} mb-3`}>
+                {isHelena && <div className="mr-2"><AvatarCircle size={28} iconSize={13} /></div>}
+                <div className="max-w-[75%] px-3.5 py-2.5 rounded-2xl text-[13px] leading-snug"
+                  style={{ background: isHelena ? CARD : GREEN, color: isHelena ? "#F5FFF8" : "#04140A",
+                    border: isHelena ? `1px solid ${BORDER}` : "none",
+                    borderTopLeftRadius: isHelena ? 4 : 16, borderTopRightRadius: isHelena ? 16 : 4 }}>
+                  {m.text}
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+      <div className="flex gap-2 px-4 pb-3 overflow-x-auto">
+        {QUICK_REPLIES.map((q) => (
+          <button key={q} onClick={() => send(q)} className="shrink-0 text-[11px] rounded-full px-3 py-1.5 whitespace-nowrap" style={{ color: GREEN, border: `1px solid ${GREEN}55` }}>{q}</button>
+        ))}
+      </div>
+      <div className="flex items-center gap-2 px-4 pb-5">
+        <button onClick={onCall} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          <Mic size={16} color={MUTED} />
+        </button>
+        <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()}
+          placeholder="Fale com a Dra. Helena..." className="flex-1 rounded-full px-4 py-2.5 text-[13px] text-white outline-none"
+          style={{ background: CARD, border: `1px solid ${BORDER}` }} />
+        <button onClick={() => send()} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: `linear-gradient(160deg,#7CFFA0,${"#22C55E"})` }}>
+          <Send size={15} color="#04140A" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CallScreen({ onEnd }) {
+  const [muted, setMuted] = useState(false);
+  const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setTimer((t) => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (s) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-between py-10 px-8">
+      <div className="text-center">
+        <p className="text-[11px] tracking-widest font-semibold mb-1" style={{ color: GREEN }}>CHAMADA DE VOZ</p>
+        <p className="text-white text-lg font-bold">Dra. Helena</p>
+        <p className="text-[12px] mt-1" style={{ color: MUTED }}>{formatTime(timer)}</p>
+      </div>
+      <div className="relative flex items-center justify-center">
+        <div className="absolute w-56 h-56 rounded-full animate-pulse" style={{ background: `radial-gradient(circle, ${GREEN}4D 0%, transparent 70%)` }} />
+        <AvatarCircle size={144} iconSize={52} />
+      </div>
+      <div className="text-center px-2">
+        <p className="text-[13.5px] leading-snug" style={{ color: "#D7E5DC" }}>
+          "Percebi que voce chamou por voz — isso costuma acontecer quando voce precisa de um empurrao. Estou ouvindo."
+        </p>
+      </div>
+      <div className="flex items-center gap-5">
+        <button onClick={() => setMuted((m) => !m)} className="w-12 h-12 rounded-full flex items-center justify-center border"
+          style={{ background: muted ? GREEN : CARD, borderColor: BORDER }}>
+          {muted ? <MicOff size={18} color="#04140A" /> : <Mic size={18} color={MUTED} />}
+        </button>
+        <button onClick={onEnd} className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: "#E5484D" }}>
+          <PhoneOff size={20} color="white" />
+        </button>
+        <div className="w-12" />
+      </div>
+    </div>
+  );
+}
+
+// ---------- COMUNIDADE ----------
+
+const RANKING = [
+  { pos: 1, name: "Lucas Rocha", xp: "2.340 XP", streak: 41, you: false },
+  { pos: 2, name: "Joao Pereira", xp: "2.120 XP", streak: 23, you: true },
+  { pos: 3, name: "Matheus Lima", xp: "1.890 XP", streak: 18, you: false },
+  { pos: 4, name: "Carla Nunes", xp: "1.760 XP", streak: 15, you: false },
+  { pos: 5, name: "Rafael Souza", xp: "1.640 XP", streak: 12, you: false },
+];
+const FEED = [
+  { name: "Carla Nunes", action: "completou 100 dias de sequencia", time: "ha 2h", likes: 34, comments: 6 },
+  { name: "Rafael Souza", action: "subiu para o Nivel 12", time: "ha 5h", likes: 21, comments: 3 },
+  { name: "Matheus Lima", action: 'concluiu o desafio "21 dias sem acucar"', time: "ha 1 dia", likes: 58, comments: 12 },
+];
+
+function ComunidadeScreen() {
+  const [tab, setTab] = useState("ranking");
+  const [liked, setLiked] = useState({});
+  const { settings } = useApp();
+
+  if (!settings.showRanking) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center px-5">
+        <EmptyState icon={Users} title="Ranking desativado" description="Ative nas configuracoes para ver o ranking" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto px-5 pt-5 pb-4">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-white font-bold text-[15px]">Comunidade</p>
+        <Users size={18} color={MUTED} />
+      </div>
+      <div className="flex rounded-full p-1 mb-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        {[{ id: "ranking", l: "Ranking" }, { id: "feed", l: "Feed" }].map((t) => (
+          <button key={t.id} onClick={() => setTab(t.id)} className="flex-1 py-1.5 rounded-full text-[12px] font-medium transition-colors"
+            style={{ background: tab === t.id ? GREEN : "transparent", color: tab === t.id ? "#04140A" : MUTED }}>{t.l}</button>
+        ))}
+      </div>
+      {tab === "ranking" && (
+        <>
+          <Card className="flex items-center gap-3 mb-4">
+            <Trophy size={18} color={GREEN} />
+            <div>
+              <p className="text-white text-[13px] font-semibold">Voce esta em 2o lugar essa semana</p>
+              <p className="text-[11px]" style={{ color: MUTED }}>Faltam 220 XP para alcancar o 1o</p>
+            </div>
+          </Card>
+          {RANKING.map((r) => (
+            <div key={r.pos} className="flex items-center gap-3 p-3 rounded-xl mb-1.5"
+              style={{ background: r.you ? `${GREEN}0F` : "transparent", border: r.you ? `1px solid ${GREEN}55` : "1px solid transparent" }}>
+              <span className="text-[13px] font-bold w-5 text-center" style={{ color: r.pos <= 3 ? GREEN : DIM }}>{r.pos}</span>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "#131A15" }}>
+                <User size={14} color={r.you ? GREEN : DIM} />
+              </div>
+              <div className="flex-1">
+                <p className="text-[12.5px] text-white font-medium">{r.name} {r.you && <span style={{ color: GREEN }} className="text-[10px]">(voce)</span>}</p>
+                <p className="text-[10.5px] flex items-center gap-1" style={{ color: DIM }}><Flame size={9} color={GREEN} /> {r.streak} dias</p>
+              </div>
+              <span className="text-[11.5px] font-semibold" style={{ color: GREEN }}>{r.xp}</span>
+            </div>
+          ))}
+        </>
+      )}
+      {tab === "feed" && FEED.map((f, i) => (
+        <Card key={i} className="mb-3">
+          <div className="flex items-center gap-2.5 mb-2.5">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "#131A15" }}><User size={14} color={DIM} /></div>
+            <div>
+              <p className="text-[12.5px] text-white"><span className="font-semibold">{f.name}</span> <span style={{ color: MUTED }}>{f.action}</span></p>
+              <p className="text-[10.5px]" style={{ color: DIM }}>{f.time}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setLiked((p) => ({ ...p, [i]: !p[i] }))} className="flex items-center gap-1.5 text-[11.5px]" style={{ color: liked[i] ? GREEN : MUTED }}>
+              <Heart size={13} fill={liked[i] ? GREEN : "none"} /> {f.likes + (liked[i] ? 1 : 0)}
+            </button>
+            <span className="flex items-center gap-1.5 text-[11.5px]" style={{ color: MUTED }}><MessageCircle size={13} /> {f.comments}</span>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// ---------- PERFIL ----------
+
+const MILESTONES = [
+  { icon: Flame, label: "Sequencia recorde", value: "143 dias" },
+  { icon: Dumbbell, label: "Treinos concluidos", value: "186" },
+  { icon: BookOpen, label: "Livros lidos", value: "12" },
+  { icon: TrendingUp, label: "Habitos concluidos", value: "1.247" },
+];
+
+function PerfilScreen({ onOpenSettings, onOpenLevelMap, onOpenPremium }) {
+  const { user, settings, setSettings, streak, maxStreak, levelInfo, levelName, achievements } = useApp();
+
+  return (
+    <div className="flex-1 overflow-y-auto px-5 pt-5 pb-4">
+      <div className="flex items-center justify-between mb-4">
+        <VLogo size={22} />
+        <button onClick={onOpenSettings}><Settings size={18} color={MUTED} /></button>
+      </div>
+      <div className="flex flex-col items-center mb-5">
+        <div className="mb-3"><AvatarCircle size={90} iconSize={38} image={user.avatar} gender={user.gender} /></div>
+        <p className="text-white text-lg font-bold">{user.name || "Usuario"}</p>
+        <div className="flex items-center gap-1.5 mt-1">
+          <Crown size={13} color={GREEN} />
+          <span className="text-[11px] font-semibold" style={{ color: GREEN }}>{levelName.label} — Nivel {levelInfo.level}</span>
+        </div>
+        <p className="text-[11px] mt-1" style={{ color: MUTED }}>{user.email || ""}</p>
+      </div>
+
+      {/* Stats rapido */}
+      <div className="grid grid-cols-3 gap-2.5 mb-5">
+        <Card className="text-center py-3">
+          <Flame size={15} color={GREEN} className="mx-auto mb-1" />
+          <p className="text-white text-[16px] font-extrabold">{streak}</p>
+          <p className="text-[10px]" style={{ color: MUTED }}>Dias seguidos</p>
+        </Card>
+        <Card className="text-center py-3">
+          <Trophy size={15} color={GREEN} className="mx-auto mb-1" />
+          <p className="text-white text-[16px] font-extrabold">{maxStreak}</p>
+          <p className="text-[10px]" style={{ color: MUTED }}>Recorde</p>
+        </Card>
+        <Card className="text-center py-3">
+          <Award size={15} color={GREEN} className="mx-auto mb-1" />
+          <p className="text-white text-[16px] font-extrabold">{achievements.length}</p>
+          <p className="text-[10px]" style={{ color: MUTED }}>Conquistas</p>
+        </Card>
+      </div>
+
+      {/* Mapa de Evolucao */}
+      <Card className="mb-5" style={{ borderColor: GREEN }}>
+        <div className="flex items-center gap-2 mb-3">
+          <Map size={15} color={GREEN} />
+          <p className="text-[12px] font-bold tracking-wide" style={{ color: GREEN }}>MAPA DE EVOLUCAO</p>
+        </div>
+        <LevelMap level={levelInfo.level} levelName={levelName} />
+        <button onClick={onOpenLevelMap} className="w-full mt-3 py-2 rounded-xl text-[12px] font-medium" style={{ background: `${GREEN}22`, color: GREEN }}>
+          Ver detalhes completos
+        </button>
+      </Card>
+
+      {/* Carta da Dra. Helena */}
+      <Card className="mb-5" style={{ borderColor: GREEN, background: `linear-gradient(135deg,${CARD},#0A140D)` }}>
+        <div className="flex items-center gap-2 mb-2"><Award size={15} color={GREEN} /><p className="text-[12px] font-bold tracking-wide" style={{ color: GREEN }}>1 ANO DE VIDA FORTE</p></div>
+        <p className="text-[12.5px] leading-relaxed" style={{ color: "#D7E5DC" }}>
+          "Hoje voce esta no nivel {levelInfo.level} com {streak} dias de sequencia. Cada habito concluido fortalece quem voce esta se tornando."
+        </p>
+        <p className="text-[10.5px] mt-2" style={{ color: MUTED }}>— Dra. Helena</p>
+      </Card>
+
+      <SectionTitle>Sua jornada ate aqui</SectionTitle>
+      <div className="grid grid-cols-2 gap-2.5 mb-5">
+        {MILESTONES.map((m) => {
+          const Icon = m.icon;
+          return (
+            <Card key={m.label} className="py-3">
+              <Icon size={15} color={GREEN} className="mb-1.5" />
+              <p className="text-white text-[16px] font-extrabold leading-none">{m.value}</p>
+              <p className="text-[10.5px] mt-1" style={{ color: MUTED }}>{m.label}</p>
+            </Card>
+          );
+        })}
+      </div>
+
+      <SectionTitle>Preferencias da Dra. Helena</SectionTitle>
+      <Card className="mb-3">
+        <div className="flex items-center gap-2.5 mb-3">
+          <Mic size={15} color={GREEN} />
+          <div>
+            <p className="text-white text-[13px] font-semibold">Modo de abertura do app</p>
+            <p className="text-[11px]" style={{ color: MUTED }}>Como a Dra. Helena te recebe todos os dias</p>
+          </div>
+        </div>
+        <div className="flex rounded-full p-1" style={{ background: "#131A15" }}>
+          {[{ id: "voz", l: "Voz", icon: Mic }, { id: "texto", l: "Texto", icon: Type }].map((opt) => (
+            <button key={opt.id} onClick={() => setSettings((s) => ({ ...s, coachMode: opt.id }))}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-[12px] font-medium transition-colors"
+              style={{ background: settings.coachMode === opt.id ? GREEN : "transparent", color: settings.coachMode === opt.id ? "#04140A" : MUTED }}>
+              <opt.icon size={13} />{opt.l}
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      <button onClick={onOpenPremium} className="w-full flex items-center gap-3 p-4 rounded-2xl mb-3"
+        style={{ background: `linear-gradient(135deg,${CARD},#0A140D)`, border: `1px solid ${GREEN}55` }}>
+        <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: `${GREEN}22` }}>
+          <Rocket size={16} color={GREEN} />
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-white text-[13px] font-semibold">Assinatura Premium</p>
+          <p className="text-[11px]" style={{ color: MUTED }}>Veja os planos e as proximas atualizacoes</p>
+        </div>
+        <ChevronRight size={15} color={DIM} />
+      </button>
+
+      <div className="flex flex-col gap-0.5 border-t pt-2" style={{ borderColor: BORDER }}>
+        {["Editar perfil", "Notificacoes", "Privacidade e dados", "Ajuda e suporte"].map((item) => (
+          <button key={item} className="flex items-center justify-between py-3 text-left">
+            <span className="text-[13px]" style={{ color: "#D7E5DC" }}>{item}</span>
+            <ChevronRight size={15} color={DIM} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------- CONFIGURACOES ----------
+
+function SettingsScreen({ onBack, onOpenAbout, onOpenManifesto }) {
+  const { settings, setSettings, user, setUser, t, createBackup, restoreBackup, deleteAccount, showToast, StorageService } = useApp();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPinSetup, setShowPinSetup] = useState(false);
+  const [pin, setPin] = useState("");
+  const fileInputRef = useRef(null);
+
+  const handleLanguageChange = (lang) => {
+    setSettings((s) => ({ ...s, language: lang }));
+    showToast("Idioma alterado!", "success");
+  };
+
+  const handlePinSetup = () => {
+    if (pin.length === 4) {
+      setSettings((s) => ({ ...s, pinLock: true, pin }));
+      setShowPinSetup(false);
+      setPin("");
+      showToast("PIN configurado!", "success");
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) restoreBackup(file);
+  };
+
+  const settingSections = [
+    {
+      title: "Conta",
+      items: [
+        { icon: User, label: "Editar perfil", action: () => {} },
+        { icon: Camera, label: "Alterar foto/avatar", action: () => {} },
+        { icon: Edit3, label: "Alterar nome", action: () => {} },
+        { icon: Mail, label: "Alterar e-mail", action: () => {} },
+        { icon: Lock, label: "Alterar senha", action: () => {} },
+      ]
+    },
+    {
+      title: "Experiencia",
+      items: [
+        { icon: MoonIcon, label: "Modo Escuro", toggle: true, value: settings.darkMode, onToggle: () => setSettings((s) => ({ ...s, darkMode: !s.darkMode })) },
+        { icon: Sparkles, label: "Animacoes", toggle: true, value: settings.animations, onToggle: () => setSettings((s) => ({ ...s, animations: !s.animations })) },
+        { icon: Volume2, label: "Sons do aplicativo", toggle: true, value: settings.sound, onToggle: () => setSettings((s) => ({ ...s, sound: !s.sound })) },
+        { icon: Smartphone, label: "Vibracao ao concluir", toggle: true, value: settings.vibration, onToggle: () => setSettings((s) => ({ ...s, vibration: !s.vibration })) },
+        { icon: BarChart2, label: "Mostrar barra de XP", toggle: true, value: settings.showXpBar, onToggle: () => setSettings((s) => ({ ...s, showXpBar: !s.showXpBar })) },
+        { icon: TrendingUp, label: "Mostrar porcentagem", toggle: true, value: settings.showProgressPercent, onToggle: () => setSettings((s) => ({ ...s, showProgressPercent: !s.showProgressPercent })) },
+      ]
+    },
+    {
+      title: "Dra. Helena",
+      items: [
+        { icon: settings.coachMode === "voz" ? Mic : Type, label: `Modo: ${settings.coachMode === "voz" ? "Voz" : "Texto"}`, action: () => setSettings((s) => ({ ...s, coachMode: s.coachMode === "voz" ? "texto" : "voz" })) },
+        { icon: MessageCircle, label: "Frequencia das mensagens", action: () => {} },
+        { icon: Heart, label: "Mensagens motivacionais", toggle: true, value: settings.motivationalMessages, onToggle: () => setSettings((s) => ({ ...s, motivationalMessages: !s.motivationalMessages })) },
+        { icon: HandHeart, label: "Saudacao ao abrir", toggle: true, value: settings.greetingOnOpen, onToggle: () => setSettings((s) => ({ ...s, greetingOnOpen: !s.greetingOnOpen })) },
+        { icon: Brain, label: `Personalidade: ${settings.coachPersonality}`, action: () => {
+          const personalities = ["serious", "motivator", "balanced"];
+          const current = personalities.indexOf(settings.coachPersonality);
+          const next = personalities[(current + 1) % personalities.length];
+          setSettings((s) => ({ ...s, coachPersonality: next }));
+        }},
+      ]
+    },
+    {
+      title: "Notificacoes",
+      items: [
+        { icon: Droplet, label: "Lembrete de agua", toggle: true, value: settings.notifications.water, onToggle: () => setSettings((s) => ({ ...s, notifications: { ...s.notifications, water: !s.notifications.water } })) },
+        { icon: Dumbbell, label: "Lembrete de treino", toggle: true, value: settings.notifications.workout, onToggle: () => setSettings((s) => ({ ...s, notifications: { ...s.notifications, workout: !s.notifications.workout } })) },
+        { icon: BookOpen, label: "Lembrete de leitura", toggle: true, value: settings.notifications.reading, onToggle: () => setSettings((s) => ({ ...s, notifications: { ...s.notifications, reading: !s.notifications.reading } })) },
+        { icon: Moon, label: "Lembrete de dormir", toggle: true, value: settings.notifications.sleep, onToggle: () => setSettings((s) => ({ ...s, notifications: { ...s.notifications, sleep: !s.notifications.sleep } })) },
+        { icon: VolumeX, label: "Silenciar notificacoes", toggle: true, value: settings.notifications.silent, onToggle: () => setSettings((s) => ({ ...s, notifications: { ...s.notifications, silent: !s.notifications.silent } })) },
+      ]
+    },
+    {
+      title: "Gamificacao",
+      items: [
+        { icon: TrendingUp, label: "Mostrar XP", toggle: true, value: true, onToggle: () => {} },
+        { icon: Trophy, label: "Mostrar ranking", toggle: true, value: settings.showRanking, onToggle: () => setSettings((s) => ({ ...s, showRanking: !s.showRanking })) },
+        { icon: Flame, label: "Exibir sequencia", toggle: true, value: settings.showStreak, onToggle: () => setSettings((s) => ({ ...s, showStreak: !s.showStreak })) },
+        { icon: Award, label: "Mostrar conquistas", toggle: true, value: settings.showAchievements, onToggle: () => setSettings((s) => ({ ...s, showAchievements: !s.showAchievements })) },
+        { icon: Sparkles, label: "Confetes ao subir nivel", toggle: true, value: settings.confettiOnLevelUp, onToggle: () => setSettings((s) => ({ ...s, confettiOnLevelUp: !s.confettiOnLevelUp })) },
+      ]
+    },
+    {
+      title: "Som",
+      items: [
+        { icon: Play, label: "Musica ambiente", toggle: true, value: settings.ambientMusic, onToggle: () => setSettings((s) => ({ ...s, ambientMusic: !s.ambientMusic })) },
+        { icon: Volume2, label: "Volume dos efeitos", action: () => {} },
+        { icon: MoonIcon, label: "Musica relaxante Modo Foco", toggle: true, value: settings.focusMusic, onToggle: () => setSettings((s) => ({ ...s, focusMusic: !s.focusMusic })) },
+      ]
+    },
+    {
+      title: "Privacidade",
+      items: [
+        { icon: Fingerprint, label: "Bloqueio por biometria", toggle: true, value: settings.biometricLock, onToggle: () => setSettings((s) => ({ ...s, biometricLock: !s.biometricLock })) },
+        { icon: KeyRound, label: "Bloqueio por PIN", toggle: true, value: settings.pinLock, onToggle: () => {
+          if (settings.pinLock) {
+            setSettings((s) => ({ ...s, pinLock: false, pin: null }));
+          } else {
+            setShowPinSetup(true);
+          }
+        }},
+        { icon: Download, label: "Exportar dados", action: createBackup },
+        { icon: Trash2, label: "Excluir conta", action: () => setShowDeleteConfirm(true), danger: true },
+      ]
+    },
+    {
+      title: "Backup",
+      items: [
+        { icon: Database, label: "Criar backup", action: createBackup },
+        { icon: Upload, label: "Restaurar backup", action: () => fileInputRef.current?.click() },
+        { icon: RotateCcw, label: "Backup automatico", toggle: true, value: settings.autoBackup, onToggle: () => setSettings((s) => ({ ...s, autoBackup: !s.autoBackup })) },
+      ]
+    },
+    {
+      title: "Idioma",
+      items: [
+        { icon: Languages, label: "Portugues", action: () => handleLanguageChange("pt"), active: settings.language === "pt" },
+        { icon: Globe2, label: "English", action: () => handleLanguageChange("en"), active: settings.language === "en" },
+        { icon: Globe, label: "Espanol", action: () => handleLanguageChange("es"), active: settings.language === "es" },
+      ]
+    },
+    {
+      title: "Vida Forte",
+      items: [
+        { icon: Info, label: "Sobre o aplicativo", action: onOpenAbout },
+        { icon: FileText, label: `Versao ${APP_VERSION}`, action: () => {} },
+        { icon: FileCheck, label: "Changelog (Novidades)", action: () => {} },
+        { icon: Star, label: "Avaliar aplicativo", action: () => {} },
+        { icon: Share2, label: "Compartilhar com amigos", action: () => {} },
+        { icon: FileQuestion, label: "Termos de uso", action: () => {} },
+        { icon: Shield, label: "Politica de privacidade", action: () => {} },
+        { icon: HelpCircle, label: "Suporte", action: () => window.open(`mailto:${SUPPORT_EMAIL}`, "_blank") },
+        { icon: Zap, label: "Manifesto Vida Forte", action: onOpenManifesto },
+      ]
+    },
+  ];
+
+  return (
+    <div className="flex-1 flex flex-col">
+      <div className="flex items-center gap-3 px-5 pt-5 pb-3">
+        <button onClick={onBack}><ArrowLeft size={18} color={MUTED} /></button>
+        <p className="text-white font-bold text-[15px]">Configuracoes</p>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 pb-4">
+        {settingSections.map((section) => (
+          <div key={section.title} className="mb-5">
+            <p className="text-[11px] font-semibold tracking-wider mb-2 px-1" style={{ color: GREEN }}>{section.title.toUpperCase()}</p>
+            <div className="flex flex-col gap-0.5">
+              {section.items.map((item) => (
+                <button key={item.label} onClick={item.action} className="flex items-center justify-between py-3 text-left"
+                  style={{ color: item.danger ? ERROR : "#D7E5DC" }}>
+                  <div className="flex items-center gap-3">
+                    <item.icon size={16} color={item.danger ? ERROR : MUTED} />
+                    <span className="text-[13px]">{item.label}</span>
+                    {item.active && <Check size={12} color={GREEN} />}
+                  </div>
+                  {item.toggle !== undefined && (
+                    <div className="w-10 h-5 rounded-full relative transition-colors" 
+                      style={{ background: item.value ? GREEN : BORDER }}
+                      onClick={(e) => { e.stopPropagation(); item.onToggle(); }}>
+                      <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all" 
+                        style={{ left: item.value ? "20px" : "2px" }} />
+                    </div>
+                  )}
+                  {!item.toggle && <ChevronRight size={15} color={DIM} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        <div className="text-center py-4">
+          <p className="text-[10px]" style={{ color: DIM }}>Vida Forte v{APP_VERSION} · {APP_BUILD_DATE}</p>
+          <p className="text-[10px] mt-1" style={{ color: DIM }}>Dados: {StorageService.getSize()}</p>
+        </div>
+      </div>
+
+      <input type="file" ref={fileInputRef} accept=".json" onChange={handleFileSelect} className="hidden" />
+
+      <ConfirmDialog 
+        isOpen={showDeleteConfirm}
+        title="Excluir conta"
+        message={t("deleteConfirm")}
+        onConfirm={() => { deleteAccount(); setShowDeleteConfirm(false); }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+
+      {showPinSetup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)" }}>
+          <div className="rounded-2xl p-5 w-full max-w-sm" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+            <p className="text-white text-[15px] font-bold mb-3">Configurar PIN</p>
+            <p className="text-[12px] mb-4" style={{ color: MUTED }}>Digite 4 numeros para o PIN</p>
+            <input type="password" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\\D/g, ""))}
+              className="w-full rounded-xl px-4 py-3 text-[18px] text-center text-white outline-none tracking-[0.5em] mb-4"
+              style={{ background: CARD, border: `1px solid ${BORDER}` }} placeholder="****" />
+            <div className="flex gap-2">
+              <button onClick={() => { setShowPinSetup(false); setPin(""); }} className="flex-1 py-2.5 rounded-xl text-[13px]" style={{ background: BORDER, color: MUTED }}>Cancelar</button>
+              <button onClick={handlePinSetup} disabled={pin.length !== 4} className="flex-1 py-2.5 rounded-xl text-[13px] font-bold"
+                style={{ background: GREEN, color: "#04140A", opacity: pin.length === 4 ? 1 : 0.35 }}>Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- SOBRE ----------
+
+function AboutScreen({ onBack }) {
+  const { t } = useApp();
+
+  return (
+    <div className="flex-1 flex flex-col">
+      <div className="flex items-center gap-3 px-5 pt-5 pb-3">
+        <button onClick={onBack}><ArrowLeft size={18} color={MUTED} /></button>
+        <p className="text-white font-bold text-[15px]">Sobre o Vida Forte</p>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 pb-4">
+        <div className="flex flex-col items-center text-center mb-6">
+          <VLogo size={56} />
+          <p className="text-white text-xl font-extrabold mt-4 mb-2">VIDA FORTE</p>
+          <p className="text-[12px]" style={{ color: MUTED }}>v{APP_VERSION} · {APP_BUILD_DATE}</p>
+        </div>
+
+        <Card className="mb-4">
+          <p className="text-[13px] leading-relaxed" style={{ color: "#D7E5DC" }}>{t("aboutText")}</p>
+        </Card>
+
+        <Card className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Rocket size={15} color={GREEN} />
+            <p className="text-[13px] font-bold" style={{ color: GREEN }}>NOSSA MISSAO</p>
+          </div>
+          <p className="text-[13px] leading-relaxed" style={{ color: "#D7E5DC" }}>{t("missionText")}</p>
+        </Card>
+
+        <Card className="mb-4">
+          <p className="text-[13px] font-bold text-white mb-3">Novidades da atualizacao</p>
+          <div className="flex flex-col gap-2">
+            {["Sistema de habitos", "Estatisticas", "Dra. Helena", "Perfil", "Sistema de XP", "Conquistas"].map((item) => (
+              <div key={item} className="flex items-center gap-2">
+                <Check size={12} color={GREEN} />
+                <span className="text-[12px]" style={{ color: "#D7E5DC" }}>{item}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="mb-4">
+          <p className="text-[13px] font-bold text-white mb-3">Avaliar aplicativo</p>
+          <p className="text-[12px] mb-3" style={{ color: MUTED }}>Gostou do Vida Forte? Sua avaliacao ajuda o projeto a crescer.</p>
+          <button className="w-full py-3 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2"
+            style={{ background: `linear-gradient(90deg,${GREEN},#22C55E)`, color: "#04140A" }}>
+            <Star size={16} /> Avaliar
+          </button>
+        </Card>
+
+        <Card className="mb-4">
+          <p className="text-[13px] font-bold text-white mb-3">Compartilhar</p>
+          <p className="text-[12px] mb-3" style={{ color: MUTED }}>Convide amigos para evoluirem junto com voce.</p>
+          <button className="w-full py-3 rounded-xl text-[13px] font-medium flex items-center justify-center gap-2"
+            style={{ background: CARD, border: `1px solid ${BORDER}`, color: "white" }}>
+            <Share2 size={16} /> Compartilhar
+          </button>
+        </Card>
+
+        <Card className="mb-4">
+          <p className="text-[13px] font-bold text-white mb-3">Fale conosco</p>
+          <div className="flex flex-col gap-2">
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center gap-2 text-[12px]" style={{ color: GREEN }}>
+              <Mail size={14} /> {SUPPORT_EMAIL}
+            </a>
+            <a href={`https://wa.me/${SUPPORT_PHONE.replace(/\\D/g, "")}`} className="flex items-center gap-2 text-[12px]" style={{ color: GREEN }}>
+              <Phone size={14} /> {SUPPORT_PHONE}
+            </a>
+          </div>
+        </Card>
+
+        <Card className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Shield size={15} color={GREEN} />
+            <p className="text-[13px] font-bold" style={{ color: GREEN }}>POLITICA DE PRIVACIDADE</p>
+          </div>
+          <p className="text-[12px] leading-relaxed" style={{ color: MUTED }}>
+            Seus dados sao armazenados localmente no seu dispositivo. Nao compartilhamos suas informacoes com terceiros.
+            Voce pode exportar ou excluir seus dados a qualquer momento.
+          </p>
+        </Card>
+
+        <Card>
+          <div className="flex items-center gap-2 mb-2">
+            <FileText size={15} color={GREEN} />
+            <p className="text-[13px] font-bold" style={{ color: GREEN }}>TERMOS DE USO</p>
+          </div>
+          <p className="text-[12px] leading-relaxed" style={{ color: MUTED }}>
+            Ao usar o Vida Forte, voce concorda em utilizar o aplicativo de forma responsavel. 
+            O app e uma ferramenta de apoio e nao substitui orientacao medica profissional.
+          </p>
+        </Card>
+
+        <div className="text-center py-6 px-2">
+          <p className="text-[12px] leading-relaxed" style={{ color: MUTED }}>{t("thankYou")}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- MANIFESTO ----------
+
+function ManifestoScreen({ onBack }) {
+  const { t } = useApp();
+
+  return (
+    <div className="flex-1 flex flex-col">
+      <div className="flex items-center gap-3 px-5 pt-5 pb-3">
+        <button onClick={onBack}><ArrowLeft size={18} color={MUTED} /></button>
+        <p className="text-white font-bold text-[15px]">Manifesto Vida Forte</p>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 pb-4 flex flex-col items-center justify-center text-center">
+        <VLogo size={80} />
+        <div className="mt-8 mb-6">
+          <p className="text-[12px] font-semibold tracking-widest mb-3" style={{ color: GREEN }}>MANIFESTO</p>
+          <h1 className="text-white text-2xl font-extrabold leading-tight mb-6">
+            Evoluir e uma<br />decisao diaria.
+          </h1>
+        </div>
+        <Card className="max-w-sm">
+          <p className="text-[14px] leading-relaxed" style={{ color: "#D7E5DC" }}>
+            {t("manifestoText")}
+          </p>
+        </Card>
+        <div className="mt-8 flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full" style={{ background: GREEN }} />
+          <div className="w-2 h-2 rounded-full" style={{ background: `${GREEN}66` }} />
+          <div className="w-2 h-2 rounded-full" style={{ background: `${GREEN}33` }} />
+        </div>
+        <p className="text-[11px] mt-4" style={{ color: DIM }}>Vida Forte. Corpo Forte. Mente Forte.</p>
+      </div>
+    </div>
+  );
+}
+
+
+// ---------- PREMIUM ----------
+
+const PREMIUM_BENEFITS = [
+  { icon: InfinityIcon, title: "Coach IA ilimitada", desc: "Converse com a Dra. Helena sempre que precisar, sem limites diarios." },
+  { icon: Mic, title: "Coach por voz", desc: "Ligacoes reais com sua mentora, nao so mensagens de texto." },
+  { icon: Target, title: "Planos inteligentes", desc: "Treino e alimentacao ajustados automaticamente ao seu progresso." },
+  { icon: User, title: "Avatar Premium", desc: "Evolucao visual mais detalhada e fiel a cada conquista." },
+  { icon: BarChart2, title: "Analises completas", desc: "Entenda o que realmente esta funcionando na sua rotina." },
+  { icon: FileText, title: "Relatorios personalizados", desc: "Resumos semanais e mensais feitos sob medida para voce." },
+  { icon: Cloud, title: "Backup na nuvem", desc: "Seu historico e evolucao, protegidos para sempre." },
+  { icon: Users, title: "Comunidade exclusiva", desc: "Desafios e conexoes so para membros Premium." },
+  { icon: Sparkles, title: "Conteudos exclusivos", desc: "Material que nao chega ao plano gratuito." },
+  { icon: Rocket, title: "Atualizacoes constantes", desc: "Novos recursos chegam primeiro para voce." },
+];
+
+const ROADMAP = [
+  { icon: Fingerprint, title: "Avatar 3D completo", eta: "Em breve" },
+  { icon: Video, title: "Coach com video", eta: "Proxima atualizacao" },
+  { icon: Watch, title: "Integracao com smartwatch", eta: "Em desenvolvimento" },
+  { icon: Heart, title: "Google Fit / Apple Health", eta: "Em desenvolvimento" },
+  { icon: Brain, title: "IA multimodal (leitura por camera)", eta: "Planejado" },
+];
+
+const PLANS = [
+  { id: "mensal", label: "Mensal", price: "R$ 39,90", sub: "/mes", tag: null },
+  { id: "anual", label: "Anual", price: "R$ 24,90", sub: "/mes", tag: "Mais escolhido" },
+  { id: "vitalicio", label: "Vitalicio", price: "R$ 697", sub: "pagamento unico", tag: "Melhor valor" },
+];
+
+function PremiumScreen({ onBack }) {
+  const [plan, setPlan] = useState("anual");
+  return (
+    <div className="flex-1 flex flex-col">
+      <div className="flex items-center gap-3 px-5 pt-5 pb-3">
+        <button onClick={onBack}><ArrowLeft size={18} color={MUTED} /></button>
+        <p className="text-white font-bold text-[15px]">Vida Forte Premium</p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pb-4">
+        <div className="flex flex-col items-center text-center mb-6 mt-2">
+          <div className="mb-4"><VLogo size={44} /></div>
+          <p className="text-white text-xl font-extrabold leading-snug mb-2">
+            Isso nao e um upgrade.<br />E um compromisso com sua evolucao.
+          </p>
+          <p className="text-[12.5px] leading-relaxed px-2" style={{ color: MUTED }}>
+            O plano gratuito te da o essencial. O Premium te da uma mentora
+            de verdade, presente todos os dias.
+          </p>
+        </div>
+
+        <div className="flex gap-2 mb-5">
+          {PLANS.map((p) => {
+            const active = plan === p.id;
+            return (
+              <button key={p.id} onClick={() => setPlan(p.id)} className="flex-1 rounded-2xl p-3 border text-left relative"
+                style={{ borderColor: active ? GREEN : BORDER, background: active ? `${GREEN}0F` : CARD }}>
+                {p.tag && (
+                  <span className="absolute -top-2 left-2 right-2 text-center text-[8.5px] font-bold rounded-full py-0.5"
+                    style={{ background: GREEN, color: "#04140A" }}>
+                    {p.tag.toUpperCase()}
+                  </span>
+                )}
+                <p className="text-[11px] font-semibold mt-1" style={{ color: active ? GREEN : MUTED }}>{p.label}</p>
+                <p className="text-white text-[15px] font-extrabold mt-1">{p.price}</p>
+                <p className="text-[9.5px]" style={{ color: DIM }}>{p.sub}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="text-white text-[13px] font-semibold mb-2.5">O que muda para voce</p>
+        <div className="flex flex-col gap-2 mb-6">
+          {PREMIUM_BENEFITS.map((b) => {
+            const Icon = b.icon;
+            return (
+              <Card key={b.title} className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${GREEN}1F` }}>
+                  <Icon size={15} color={GREEN} />
+                </div>
+                <div>
+                  <p className="text-white text-[12.5px] font-semibold">{b.title}</p>
+                  <p className="text-[11px] leading-snug" style={{ color: MUTED }}>{b.desc}</p>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+
+        <Card className="mb-6" style={{ background: `linear-gradient(135deg,${CARD},#0A140D)` }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Rocket size={15} color={GREEN} />
+            <p className="text-white text-[13px] font-semibold">Proximas atualizacoes</p>
+          </div>
+          <div className="flex flex-col gap-3">
+            {ROADMAP.map((r) => {
+              const Icon = r.icon;
+              return (
+                <div key={r.title} className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#131A15" }}>
+                    <Icon size={13} color={GREEN} />
+                  </div>
+                  <p className="flex-1 text-[12px]" style={{ color: "#D7E5DC" }}>{r.title}</p>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ color: MUTED, border: `1px solid ${BORDER}` }}>{r.eta}</span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        <button className="w-full py-3.5 rounded-xl font-bold text-[14px] mb-2"
+          style={{ background: `linear-gradient(90deg,${GREEN},#22C55E)`, color: "#04140A" }}>
+          QUERO EVOLUIR
+        </button>
+        <p className="text-center text-[10.5px] mb-2" style={{ color: DIM }}>
+          Cancele quando quiser. Sem burocracia.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ---------- MAPA DE EVOLUCAO ----------
+
+function LevelMapScreen({ onBack }) {
+  const { levelInfo, levelName, xp } = useApp();
+  const currentIndex = LEVEL_MAP.findIndex((l) => l.name === levelName.name);
+
+  return (
+    <div className="flex-1 flex flex-col">
+      <div className="flex items-center gap-3 px-5 pt-5 pb-3">
+        <button onClick={onBack}><ArrowLeft size={18} color={MUTED} /></button>
+        <p className="text-white font-bold text-[15px]">Mapa de Evolucao</p>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 pb-4">
+        <Card className="mb-4 text-center">
+          <p className="text-[12px]" style={{ color: MUTED }}>Nivel Atual</p>
+          <p className="text-white text-3xl font-extrabold mt-1">{levelInfo.level}</p>
+          <p className="text-[14px] font-semibold mt-1" style={{ color: levelName.color }}>{levelName.label}</p>
+          <p className="text-[11px] mt-1" style={{ color: MUTED }}>{xp.toLocaleString()} XP total</p>
+        </Card>
+
+        <div className="flex flex-col gap-3">
+          {LEVEL_MAP.map((l, i) => {
+            const isActive = i <= currentIndex;
+            const isCurrent = i === currentIndex;
+            const isNext = i === currentIndex + 1;
+            return (
+              <Card key={l.name} className="flex items-center gap-4" 
+                style={{ 
+                  borderColor: isCurrent ? l.color : BORDER,
+                  background: isCurrent ? `${l.color}0F` : CARD,
+                  opacity: isActive ? 1 : 0.5,
+                }}>
+                <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold border-2"
+                  style={{
+                    background: isActive ? l.color : CARD,
+                    borderColor: l.color,
+                    color: isActive ? "#04140A" : DIM,
+                    boxShadow: isCurrent ? `0 0 16px ${l.color}44` : "none",
+                  }}>
+                  {i + 1}
+                </div>
+                <div className="flex-1">
+                  <p className="text-[15px] font-bold" style={{ color: isActive ? l.color : DIM }}>{l.label}</p>
+                  <p className="text-[11px]" style={{ color: MUTED }}>{l.minXp.toLocaleString()} XP</p>
+                </div>
+                {isCurrent && <Sparkles size={20} color={l.color} />}
+                {isNext && <ChevronRight size={20} color={DIM} />}
+              </Card>
+            );
+          })}
+        </div>
+
+        <Card className="mt-4">
+          <p className="text-[12px] font-semibold mb-2" style={{ color: GREEN }}>PROXIMO NIVEL</p>
+          <p className="text-white text-[14px]">
+            Faltam {(levelInfo.target - levelInfo.current).toLocaleString()} XP para o nivel {levelInfo.level + 1}
+          </p>
+          <ProgressBar value={levelInfo.current} max={levelInfo.target} height={8} className="mt-2" />
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ---------- NAV ----------
+
+function NavItem({ icon: Icon, label, active, onClick }) {
+  return (
+    <button onClick={onClick} className="flex-1 flex flex-col items-center gap-1 py-2">
+      <Icon size={19} strokeWidth={active ? 2.3 : 1.7} color={active ? GREEN : "#5C6E64"} />
+      <span className="text-[10px]" style={{ color: active ? GREEN : "#5C6E64", fontWeight: active ? 600 : 400 }}>{label}</span>
+    </button>
+  );
+}
+
+// ---------- APP ROOT ----------
+
+export default function VidaForteAppCompleto() {
+  const [stage, setStage] = useState("auth"); // auth | onboarding | opening | app
+  const [screen, setScreen] = useState("home");
+  const [prevScreen, setPrevScreen] = useState(null);
+
+  const navigateTo = (newScreen) => {
+    setPrevScreen(screen);
+    setScreen(newScreen);
+  };
+
+  const goBack = () => {
+    if (prevScreen) {
+      setScreen(prevScreen);
+      setPrevScreen(null);
+    } else {
+      setScreen("home");
+    }
+  };
+
+  const showNav = ["home", "habitos", "estatisticas", "comunidade", "perfil"].includes(screen);
+
+  return (
+    <AppProvider>
+      <AppContent 
+        stage={stage} 
+        setStage={setStage}
+        screen={screen}
+        setScreen={navigateTo}
+        goBack={goBack}
+        showNav={showNav}
+      />
+    </AppProvider>
+  );
+}
+
+function AppContent({ stage, setStage, screen, setScreen, goBack, showNav }) {
+  const { user, settings, t } = useApp();
+
+  const handleLogin = (data) => {
+    // Simula login
+    setStage("app");
+  };
+
+  const handleRegister = (data) => {
+    // Simula cadastro
+    setStage("app");
+  };
+
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-8" style={{ background: BG }}>
+      <div className="w-full max-w-[380px] h-[800px] rounded-[2.25rem] border-[6px] overflow-hidden flex flex-col relative"
+        style={{ background: "black", borderColor: CARD }}>
+
+        {stage === "auth" && (
+          <AuthScreen onLogin={handleLogin} onRegister={handleRegister} />
+        )}
+
+        {stage === "onboarding" && (
+          <Onboarding onFinish={() => setStage("opening")} />
+        )}
+
+        {stage === "opening" && (
+          <DailyOpening onDone={() => setStage("app")} />
+        )}
+
+        {stage === "app" && (
+          <>
+            {screen === "home" && (
+              <HomeScreen 
+                onOpenChat={() => setScreen("chat")} 
+                onOpenAlimentacao={() => setScreen("alimentacao")}
+                onOpenLevelMap={() => setScreen("levelmap")}
+              />
+            )}
+            {screen === "habitos" && <HabitosScreen />}
+            {screen === "estatisticas" && <EstatisticasScreen />}
+            {screen === "comunidade" && <ComunidadeScreen />}
+            {screen === "perfil" && (
+              <PerfilScreen 
+                onOpenSettings={() => setScreen("settings")}
+                onOpenLevelMap={() => setScreen("levelmap")}
+                onOpenPremium={() => setScreen("premium")}
+              />
+            )}
+            {screen === "alimentacao" && <AlimentacaoScreen onBack={goBack} />}
+            {screen === "premium" && <PremiumScreen onBack={goBack} />}
+            {screen === "chat" && <ChatScreen onBack={goBack} onCall={() => setScreen("call")} />}
+            {screen === "call" && <CallScreen onEnd={goBack} />}
+            {screen === "settings" && (
+              <SettingsScreen 
+                onBack={goBack} 
+                onOpenAbout={() => setScreen("about")}
+                onOpenManifesto={() => setScreen("manifesto")}
+              />
+            )}
+            {screen === "about" && <AboutScreen onBack={goBack} />}
+            {screen === "manifesto" && <ManifestoScreen onBack={goBack} />}
+            {screen === "levelmap" && <LevelMapScreen onBack={goBack} />}
+
+            {showNav && (
+              <div className="border-t flex px-2 shrink-0" style={{ borderColor: BORDER, background: "black" }}>
+                <NavItem icon={Home} label="Inicio" active={screen === "home"} onClick={() => setScreen("home")} />
+                <NavItem icon={ListChecks} label="Habitos" active={screen === "habitos"} onClick={() => setScreen("habitos")} />
+                <NavItem icon={BarChart3} label="Stats" active={screen === "estatisticas"} onClick={() => setScreen("estatisticas")} />
+                <NavItem icon={Users} label="Comunidade" active={screen === "comunidade"} onClick={() => setScreen("comunidade")} />
+                <NavItem icon={User} label="Perfil" active={screen === "perfil"} onClick={() => setScreen("perfil")} />
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
